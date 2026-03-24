@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import type { Booking, TimeSlot, Service, BookingStatus } from '../types';
+import type { Booking, TimeSlot, Service, BookingStatus, ExternalCalendarEvent } from '../types';
 import { bookingService } from '../services/bookingService';
 import { slotService } from '../services/slotService';
 import { serviceService } from '../services/serviceService';
+import { calendarSyncService } from '../services/calendarSyncService';
 import {
   MOCK_BOOKINGS,
   MOCK_SLOTS,
@@ -15,6 +16,7 @@ interface BookingStore {
   bookings: Booking[];
   slots: TimeSlot[];
   services: Service[];
+  externalEvents: ExternalCalendarEvent[];
   loading: boolean;
   error: string | null;
 
@@ -35,6 +37,9 @@ interface BookingStore {
   // Reschedule
   rescheduleBooking: (bookingId: string, newSlotId: string) => Promise<void>;
 
+  // Calendar Sync
+  fetchExternalEvents: () => Promise<void>;
+
   // Utilities
   clearError: () => void;
 }
@@ -43,6 +48,7 @@ export const useBookingStore = create<BookingStore>((set) => ({
   bookings: [],
   slots: [],
   services: [],
+  externalEvents: [],
   loading: false,
   error: null,
 
@@ -168,6 +174,16 @@ export const useBookingStore = create<BookingStore>((set) => ({
     } catch (err) {
       set({ error: (err as Error).message });
       throw err;
+    }
+  },
+
+  // ── Calendar sync ───────────────────────────────────────────────────────────
+  fetchExternalEvents: async () => {
+    try {
+      const events = await calendarSyncService.getExternalEvents();
+      set({ externalEvents: events });
+    } catch {
+      // non-fatal — calendar sync failing shouldn't break the app
     }
   },
 

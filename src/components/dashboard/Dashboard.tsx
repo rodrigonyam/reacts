@@ -10,7 +10,7 @@ import { Spinner } from '../ui/Spinner';
 import type { Booking, CalendarEvent } from '../../types';
 
 export function Dashboard() {
-  const { bookings, slots, services, loading, fetchBookings, fetchSlots, fetchServices, updateBookingStatus } =
+  const { bookings, slots, services, externalEvents, loading, fetchBookings, fetchSlots, fetchServices, fetchExternalEvents, updateBookingStatus } =
     useBookingStore();
 
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -22,7 +22,8 @@ export function Dashboard() {
     fetchBookings();
     fetchSlots();
     fetchServices();
-  }, [fetchBookings, fetchSlots, fetchServices]);
+    fetchExternalEvents();
+  }, [fetchBookings, fetchSlots, fetchServices, fetchExternalEvents]);
 
   // Stats
   const total = bookings.length;
@@ -82,6 +83,7 @@ export function Dashboard() {
           bookings={bookings}
           slots={slots}
           showAvailability={true}
+          externalEvents={externalEvents}
           onSelectSlot={handleSlotSelect}
           onSelectEvent={handleEventSelect}
         />

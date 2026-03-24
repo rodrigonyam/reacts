@@ -5,6 +5,7 @@ import { Dashboard } from './components/dashboard/Dashboard';
 import { BookingsList } from './components/bookings/BookingsList';
 import { SlotManager } from './components/slots/SlotManager';
 import { ReschedulePage } from './pages/ReschedulePage';
+import { CalendarSyncPage } from './pages/CalendarSyncPage';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/bookings" element={<BookingsList />} />
                 <Route path="/slots" element={<SlotManager />} />
+                <Route path="/calendar-sync" element={<CalendarSyncPage />} />
               </Routes>
             </AppLayout>
           }

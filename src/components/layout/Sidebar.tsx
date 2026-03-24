@@ -4,6 +4,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: '📅', end: true },
   { to: '/bookings', label: 'Bookings', icon: '📋', end: false },
   { to: '/slots', label: 'Slots', icon: '🕐', end: false },
+  { to: '/calendar-sync', label: 'Calendar Sync', icon: '🔄', end: false },
 ];
 
 export function Sidebar() {

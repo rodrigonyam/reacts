@@ -8,7 +8,8 @@ import {
 } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
-import type { CalendarEvent, Booking, TimeSlot } from '../../types';
+import type { CalendarEvent, Booking, TimeSlot, ExternalCalendarEvent } from '../../types';
+import { CALENDAR_PROVIDERS } from '../../services/calendarSyncService';
 
 const localizer = dateFnsLocalizer({
   format,
@@ -22,6 +23,7 @@ interface BookingCalendarProps {
   bookings: Booking[];
   slots?: TimeSlot[];
   showAvailability?: boolean;
+  externalEvents?: ExternalCalendarEvent[];
   onSelectSlot?: (slotInfo: SlotInfo) => void;
   onSelectEvent?: (event: CalendarEvent) => void;
 }
@@ -45,6 +47,7 @@ export function BookingCalendar({
   bookings,
   slots = [],
   showAvailability = true,
+  externalEvents = [],
   onSelectSlot,
   onSelectEvent,
 }: BookingCalendarProps) {
@@ -103,28 +106,53 @@ export function BookingCalendar({
       });
   }, [slots, bookings, showAvailability]);
 
-  const events = useMemo(
-    () => [...availabilityEvents, ...bookingEvents],
-    [availabilityEvents, bookingEvents],
+  // External calendar "blocked" events (meetings, personal events from Google/Outlook/etc.)
+  const externalCalEvents = useMemo(
+    () =>
+      externalEvents.map((e) => {
+        const providerInfo = CALENDAR_PROVIDERS.find((p) => p.id === e.provider);
+        const color = providerInfo?.color ?? '#6b7280';
+        return {
+          id: `ext-${e.id}`,
+          title: e.title,
+          start: new Date(e.start),
+          end: new Date(e.end),
+          resource: null as unknown as Booking,
+          color,
+        } as CalendarEvent;
+      }),
+    [externalEvents],
   );
 
+  const allEvents = useMemo(
+    () => [...availabilityEvents, ...bookingEvents, ...externalCalEvents],
+    [availabilityEvents, bookingEvents, externalCalEvents],
+  );
   const eventStyleGetter = useCallback((event: Event) => {
     const calEvent = event as CalendarEvent;
     const isAvailability = calEvent.id.toString().startsWith('avail-');
+    const isExternal = calEvent.id.toString().startsWith('ext-');
     return {
       style: {
         backgroundColor: isAvailability
-          ? `${calEvent.color ?? '#10b981'}22`   // low opacity background for availability
+          ? `${calEvent.color ?? '#10b981'}22`
+          : isExternal
+          ? `${calEvent.color ?? '#6b7280'}30`
           : calEvent.color ?? '#0284c7',
-        borderLeft: isAvailability
-          ? `3px solid ${calEvent.color ?? '#10b981'}`
+        borderLeft: isAvailability || isExternal
+          ? `3px solid ${calEvent.color ?? '#6b7280'}`
           : undefined,
-        borderColor: isAvailability ? 'transparent' : calEvent.color ?? '#0284c7',
-        color: isAvailability ? calEvent.color ?? '#059669' : '#fff',
+        borderColor: isAvailability || isExternal ? 'transparent' : calEvent.color ?? '#0284c7',
+        color: isAvailability
+          ? calEvent.color ?? '#059669'
+          : isExternal
+          ? calEvent.color ?? '#6b7280'
+          : '#fff',
         borderRadius: '4px',
         fontSize: '0.75rem',
         fontWeight: isAvailability ? 400 : 500,
-        fontStyle: isAvailability ? 'italic' : 'normal',
+        fontStyle: isAvailability || isExternal ? 'italic' : 'normal',
+        cursor: isExternal ? 'default' : 'pointer',
       },
     };
   }, []);
@@ -136,6 +164,8 @@ export function BookingCalendar({
     { color: '#0284c7', label: 'Confirmed' },
     { color: '#d97706', label: 'Pending' },
     { color: '#059669', label: 'Completed' },
+    { color: '#4285F4', label: 'Google event' },
+    { color: '#0078D4', label: 'Outlook event' },
   ];
 
   return (
@@ -155,7 +185,7 @@ export function BookingCalendar({
       <div className="h-[640px] p-4">
         <Calendar
           localizer={localizer}
-          events={events}
+          events={allEvents}
           view={currentView}
           onView={setCurrentView}
           date={currentDate}
@@ -164,7 +194,8 @@ export function BookingCalendar({
           onSelectSlot={onSelectSlot}
           onSelectEvent={(e) => {
             const calEvent = e as CalendarEvent;
-            if (!calEvent.id.toString().startsWith('avail-')) {
+            const id = calEvent.id.toString();
+            if (!id.startsWith('avail-') && !id.startsWith('ext-')) {
               onSelectEvent?.(calEvent);
             }
           }}

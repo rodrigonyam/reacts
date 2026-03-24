@@ -2,6 +2,36 @@
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
 
+// ── Calendar Sync ─────────────────────────────────────────────────────────────
+
+export type ExternalCalendarProvider = 'google' | 'outlook' | 'apple' | 'ical';
+
+/** An event pulled from an external calendar that blocks time */
+export interface ExternalCalendarEvent {
+  id: string;
+  provider: ExternalCalendarProvider;
+  externalId: string;
+  title: string;          // may be "Busy" if privacy setting hides title
+  start: string;          // ISO datetime
+  end: string;            // ISO datetime
+  allDay?: boolean;
+  accountEmail?: string;
+  calendarName?: string;
+}
+
+/** Represents a connected external calendar account */
+export interface CalendarConnection {
+  id: string;
+  provider: ExternalCalendarProvider;
+  accountEmail: string;
+  calendarName: string;
+  connectedAt: string;
+  lastSyncedAt?: string;
+  syncStatus: 'idle' | 'syncing' | 'error' | 'success';
+  errorMessage?: string;
+  color: string;
+}
+
 // ── Payment ───────────────────────────────────────────────────────────────────
 
 export type PaymentStatus = 'unpaid' | 'processing' | 'paid' | 'failed' | 'refunded';
