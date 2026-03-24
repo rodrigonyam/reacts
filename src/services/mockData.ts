@@ -2,7 +2,7 @@
  * Mock data used as fallback when VITE_USE_MOCK=true (or no backend is running).
  * Replace / remove once your real API is connected.
  */
-import type { Booking, Client, GroupClass, GroupEnrollment, Service, TimeSlot, User } from '../types';
+import type { Booking, Client, GroupClass, GroupEnrollment, Service, StaffMember, TimeSlot, User } from '../types';
 import { addDays, format, setHours, setMinutes } from 'date-fns';
 
 const today = new Date();
@@ -225,4 +225,111 @@ export const MOCK_ENROLLMENTS: GroupEnrollment[] = [
   { id: 'enr6', classId: 'gc2', clientId: 'c3', clientName: 'Carol Martinez', clientEmail: 'carol@example.com', status: 'enrolled', enrolledAt: '2025-12-07T08:30:00Z' },
   { id: 'enr7', classId: 'gc3', clientId: 'c2', clientName: 'Bob Williams', clientEmail: 'bob@example.com', status: 'enrolled', enrolledAt: '2025-12-12T09:00:00Z' },
   { id: 'enr8', classId: 'gc3', clientId: 'c3', clientName: 'Carol Martinez', clientEmail: 'carol@example.com', status: 'enrolled', enrolledAt: '2025-12-12T09:30:00Z' },
+];
+
+export const MOCK_STAFF: StaffMember[] = [
+  {
+    id: 'staff1',
+    firstName: 'Sarah',
+    lastName: 'Park',
+    email: 'sarah.park@seniorsonsteroids.com',
+    phone: '555-0201',
+    role: 'instructor',
+    bio: 'Certified physical therapist with 12 years working with seniors. Specializes in mobility restoration and fall prevention programs.',
+    serviceIds: ['s2'],
+    availability: [
+      { dayOfWeek: 1, startTime: '08:00', endTime: '16:00' },
+      { dayOfWeek: 3, startTime: '08:00', endTime: '16:00' },
+      { dayOfWeek: 5, startTime: '09:00', endTime: '13:00' },
+    ],
+    status: 'active',
+    hireDate: '2022-03-15',
+    color: '#7c3aed',
+    notes: 'Leads Morning Mobility Circle group class. Dr. prefix preferred.',
+    createdAt: '2022-03-15T08:00:00Z',
+    updatedAt: '2025-01-10T09:00:00Z',
+  },
+  {
+    id: 'staff2',
+    firstName: 'Lisa',
+    lastName: 'Tran',
+    email: 'lisa.tran@seniorsonsteroids.com',
+    phone: '555-0202',
+    role: 'instructor',
+    bio: 'Certified yoga instructor and occupational therapist. Expert in adaptive movement for aging populations.',
+    serviceIds: ['s1'],
+    availability: [
+      { dayOfWeek: 2, startTime: '09:00', endTime: '15:00' },
+      { dayOfWeek: 4, startTime: '09:00', endTime: '15:00' },
+    ],
+    status: 'active',
+    hireDate: '2023-06-01',
+    color: '#059669',
+    notes: 'Leads Chair Yoga & Balance group class.',
+    createdAt: '2023-06-01T08:00:00Z',
+    updatedAt: '2025-01-12T09:00:00Z',
+  },
+  {
+    id: 'staff3',
+    firstName: 'James',
+    lastName: 'Rivera',
+    email: 'james.rivera@seniorsonsteroids.com',
+    phone: '555-0203',
+    role: 'provider',
+    bio: 'Registered dietitian and nutritionist. Specializes in senior dietary needs, supplement guidance, and chronic disease management.',
+    serviceIds: ['s3', 's4'],
+    availability: [
+      { dayOfWeek: 1, startTime: '10:00', endTime: '17:00' },
+      { dayOfWeek: 3, startTime: '10:00', endTime: '17:00' },
+      { dayOfWeek: 5, startTime: '13:00', endTime: '17:00' },
+    ],
+    status: 'active',
+    hireDate: '2021-09-20',
+    color: '#db2777',
+    notes: 'Leads Nutrition Workshop Series. Also available for 1-on-1 consultations.',
+    createdAt: '2021-09-20T08:00:00Z',
+    updatedAt: '2025-01-15T09:00:00Z',
+  },
+  {
+    id: 'staff4',
+    firstName: 'Monica',
+    lastName: 'Hayes',
+    email: 'monica.hayes@seniorsonsteroids.com',
+    phone: '555-0204',
+    role: 'receptionist',
+    bio: 'Front desk coordinator with 5 years of senior care facility experience. Manages scheduling and client communications.',
+    serviceIds: [],
+    availability: [
+      { dayOfWeek: 1, startTime: '07:30', endTime: '16:00' },
+      { dayOfWeek: 2, startTime: '07:30', endTime: '16:00' },
+      { dayOfWeek: 3, startTime: '07:30', endTime: '16:00' },
+      { dayOfWeek: 4, startTime: '07:30', endTime: '16:00' },
+      { dayOfWeek: 5, startTime: '07:30', endTime: '14:00' },
+    ],
+    status: 'active',
+    hireDate: '2024-01-08',
+    color: '#0284c7',
+    createdAt: '2024-01-08T08:00:00Z',
+    updatedAt: '2025-01-08T09:00:00Z',
+  },
+  {
+    id: 'staff5',
+    firstName: 'Kevin',
+    lastName: 'Osei',
+    email: 'kevin.osei@seniorsonsteroids.com',
+    phone: '555-0205',
+    role: 'provider',
+    bio: 'Licensed clinical social worker focusing on mental wellness for older adults. Provides counseling and group support sessions.',
+    serviceIds: ['s4'],
+    availability: [
+      { dayOfWeek: 2, startTime: '10:00', endTime: '18:00' },
+      { dayOfWeek: 4, startTime: '10:00', endTime: '18:00' },
+    ],
+    status: 'on-leave',
+    hireDate: '2023-02-14',
+    color: '#d97706',
+    notes: 'Currently on medical leave. Return expected Q2 2026.',
+    createdAt: '2023-02-14T08:00:00Z',
+    updatedAt: '2026-01-20T09:00:00Z',
+  },
 ];

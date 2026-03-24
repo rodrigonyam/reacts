@@ -12,6 +12,7 @@ import { TimeZonePage } from './pages/TimeZonePage';
 import { BookingPoliciesPage } from './pages/BookingPoliciesPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { GroupSchedulingPage } from './pages/GroupSchedulingPage';
+import { StaffManagementPage } from './pages/StaffManagementPage';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
                 <Route path="/policies" element={<BookingPoliciesPage />} />
                 <Route path="/clients" element={<ClientsPage />} />
                 <Route path="/groups" element={<GroupSchedulingPage />} />
+                <Route path="/staff" element={<StaffManagementPage />} />
               </Routes>
             </AppLayout>
           }

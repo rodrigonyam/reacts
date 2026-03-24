@@ -35,15 +35,37 @@ export interface CalendarConnection {
 // ── Payment ───────────────────────────────────────────────────────────────────
 
 export type PaymentStatus = 'unpaid' | 'processing' | 'paid' | 'failed' | 'refunded';
+export type PaymentGateway = 'stripe' | 'paypal' | 'square';
 
 export interface PaymentInfo {
   status: PaymentStatus;
-  amount: number;
+  amount: number;           // cents — total amount (or deposit amount when paymentType='deposit')
   currency: string;
+  gateway?: PaymentGateway;
+  paymentType?: 'full' | 'deposit';
+  depositAmount?: number;   // cents charged now (equals amount when paymentType='deposit')
+  remainingBalance?: number; // cents due at appointment
   intentId?: string;
   paidAt?: string;
   last4?: string;
   brand?: string;
+}
+
+export interface GatewayConfig {
+  enabled: boolean;
+  testMode: boolean;
+  publishableKey?: string;   // Stripe
+  clientId?: string;         // PayPal
+  applicationId?: string;    // Square
+  locationId?: string;       // Square
+}
+
+export interface PaymentGatewaySettings {
+  defaultGateway: PaymentGateway;
+  gateways: Record<PaymentGateway, GatewayConfig>;
+  depositEnabled: boolean;
+  depositType: 'percent' | 'fixed';
+  depositValue: number; // percent (0–100) or fixed cents
 }
 
 // ── Reminders ─────────────────────────────────────────────────────────────────
@@ -237,6 +259,35 @@ export interface GroupEnrollment {
   status: EnrollmentStatus;
   enrolledAt: string;
   notes?: string;
+}
+
+// ── Staff Management ──────────────────────────────────────────────────────────
+
+export type StaffRole = 'provider' | 'instructor' | 'admin' | 'receptionist' | 'support';
+export type StaffStatus = 'active' | 'inactive' | 'on-leave';
+
+export interface StaffAvailabilitySlot {
+  dayOfWeek: number;   // 0=Sun…6=Sat
+  startTime: string;   // HH:mm
+  endTime: string;     // HH:mm
+}
+
+export interface StaffMember {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  role: StaffRole;
+  bio?: string;
+  serviceIds: string[];
+  availability: StaffAvailabilitySlot[];
+  status: StaffStatus;
+  hireDate?: string;   // YYYY-MM-DD
+  color: string;       // hex – used for calendar / avatar
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── Form input types ──────────────────────────────────────────────────────────

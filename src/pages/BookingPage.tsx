@@ -16,8 +16,9 @@ import toast from 'react-hot-toast';
 import { useBookingStore } from '../store/bookingStore';
 import { PaymentForm } from '../components/payment/PaymentForm';
 import { Spinner } from '../components/ui/Spinner';
-import type { Service, TimeSlot, PaymentInfo } from '../types';
+import type { Service, TimeSlot, PaymentInfo, PaymentGatewaySettings } from '../types';
 import { MOCK_SERVICES, MOCK_SLOTS } from '../services/mockData';
+import { loadGatewaySettings } from '../services/paymentGatewayService';
 import {
   COMMON_TIMEZONES,
   convertSlotRange,

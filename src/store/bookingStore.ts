@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Booking, Client, GroupClass, GroupEnrollment, TimeSlot, Service, BookingStatus, ExternalCalendarEvent, ScheduledReminder, BookingPolicy } from '../types';
+import type { Booking, Client, GroupClass, GroupEnrollment, StaffMember, TimeSlot, Service, BookingStatus, ExternalCalendarEvent, ScheduledReminder, BookingPolicy } from '../types';
 import { bookingService } from '../services/bookingService';
 import { slotService } from '../services/slotService';
 import { serviceService } from '../services/serviceService';
@@ -18,6 +18,13 @@ import {
   saveClients,
 } from '../services/clientService';
 import {
+  addStaffMember as svcAddStaffMember,
+  updateStaffMember as svcUpdateStaffMember,
+  deleteStaffMember as svcDeleteStaffMember,
+  loadStaff,
+  saveStaff,
+} from '../services/staffService';
+import {
   addGroupClass as svcAddGroupClass,
   updateGroupClass as svcUpdateGroupClass,
   deleteGroupClass as svcDeleteGroupClass,
@@ -35,6 +42,7 @@ import {
   MOCK_ENROLLMENTS,
   MOCK_SLOTS,
   MOCK_SERVICES,
+  MOCK_STAFF,
 } from '../services/mockData';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.DEV;
@@ -104,6 +112,13 @@ interface BookingStore {
   enrollClient: (classId: string, clientId: string, clientName: string, clientEmail: string) => void;
   unenrollClient: (enrollmentId: string) => void;
 
+  // Staff Management
+  staff: StaffMember[];
+  fetchStaff: () => void;
+  addStaffMember: (data: Omit<StaffMember, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateStaffMember: (id: string, changes: Partial<Omit<StaffMember, 'id' | 'createdAt'>>) => void;
+  deleteStaffMember: (id: string) => void;
+
   // Utilities
   clearError: () => void;
 }
@@ -117,6 +132,7 @@ export const useBookingStore = create<BookingStore>((set) => ({
   clients: loadClients(),
   groupClasses: loadGroupClasses(),
   enrollments: loadEnrollments(),
+  staff: loadStaff(),
   loading: false,
   error: null,
   clientTimezone: detectClientTimezone(),
@@ -191,6 +207,26 @@ export const useBookingStore = create<BookingStore>((set) => ({
       const result = svcUnenrollClient(state.enrollments, state.groupClasses, enrollmentId);
       return { enrollments: result.enrollments, groupClasses: result.classes };
     }),
+
+  // ── Staff Management ───────────────────────────────────────────────────────
+  fetchStaff: () => {
+    const stored = loadStaff();
+    if (USE_MOCK && stored.length === 0) {
+      saveStaff(MOCK_STAFF);
+      set({ staff: MOCK_STAFF });
+    } else {
+      set({ staff: stored.length > 0 ? stored : USE_MOCK ? MOCK_STAFF : stored });
+    }
+  },
+
+  addStaffMember: (data) =>
+    set((state) => ({ staff: svcAddStaffMember(state.staff, data) })),
+
+  updateStaffMember: (id, changes) =>
+    set((state) => ({ staff: svcUpdateStaffMember(state.staff, id, changes) })),
+
+  deleteStaffMember: (id) =>
+    set((state) => ({ staff: svcDeleteStaffMember(state.staff, id) })),
 
   // ── Bookings ───────────────────────────────────────────────────────────────
   fetchBookings: async () => {

@@ -8,8 +8,9 @@ const NAV_ITEMS = [
   { to: '/reminders',     label: 'Reminders',     icon: '🔔', end: false },
   { to: '/timezone',      label: 'Time Zones',     icon: '🌍', end: false },
   { to: '/policies',      label: 'Policies',       icon: '📋', end: false },
-  { to: '/clients',       label: 'Clients',         icon: '👤', end: false },
-  { to: '/groups',        label: 'Group Classes',    icon: '👥', end: false },
+  { to: '/clients',  label: 'Clients',       icon: '👤', end: false },
+  { to: '/groups',   label: 'Group Classes',  icon: '👥', end: false },
+  { to: '/staff',    label: 'Staff',          icon: '🧑‍⚕️', end: false },
 ];
 
 export function Sidebar() {
