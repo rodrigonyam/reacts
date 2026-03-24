@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Booking, TimeSlot, Service, BookingStatus, ExternalCalendarEvent, ScheduledReminder, BookingPolicy } from '../types';
+import type { Booking, Client, GroupClass, GroupEnrollment, TimeSlot, Service, BookingStatus, ExternalCalendarEvent, ScheduledReminder, BookingPolicy } from '../types';
 import { bookingService } from '../services/bookingService';
 import { slotService } from '../services/slotService';
 import { serviceService } from '../services/serviceService';
@@ -8,7 +8,31 @@ import { reminderService, buildMockAllReminders } from '../services/reminderServ
 import { detectClientTimezone, DEFAULT_PROVIDER_TZ, PROVIDER_TZ_KEY } from '../services/timezoneService';
 import { loadPolicy, savePolicy } from '../services/policyService';
 import {
+  addClient as svcAddClient,
+  updateClient as svcUpdateClient,
+  deleteClient as svcDeleteClient,
+  addNote as svcAddNote,
+  deleteNote as svcDeleteNote,
+  editNote as svcEditNote,
+  loadClients,
+  saveClients,
+} from '../services/clientService';
+import {
+  addGroupClass as svcAddGroupClass,
+  updateGroupClass as svcUpdateGroupClass,
+  deleteGroupClass as svcDeleteGroupClass,
+  enrollClient as svcEnrollClient,
+  unenrollClient as svcUnenrollClient,
+  loadGroupClasses,
+  saveGroupClasses,
+  loadEnrollments,
+  saveEnrollments,
+} from '../services/groupBookingService';
+import {
   MOCK_BOOKINGS,
+  MOCK_CLIENTS,
+  MOCK_GROUP_CLASSES,
+  MOCK_ENROLLMENTS,
   MOCK_SLOTS,
   MOCK_SERVICES,
 } from '../services/mockData';
@@ -60,6 +84,26 @@ interface BookingStore {
   policy: BookingPolicy;
   setPolicy: (policy: BookingPolicy) => void;
 
+  // Clients
+  clients: Client[];
+  fetchClients: () => void;
+  addClient: (data: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'notes'>) => void;
+  updateClient: (id: string, changes: Partial<Omit<Client, 'id' | 'createdAt'>>) => void;
+  deleteClient: (id: string) => void;
+  addClientNote: (clientId: string, content: string) => void;
+  deleteClientNote: (clientId: string, noteId: string) => void;
+  editClientNote: (clientId: string, noteId: string, content: string) => void;
+
+  // Group Scheduling
+  groupClasses: GroupClass[];
+  enrollments: GroupEnrollment[];
+  fetchGroupClasses: () => void;
+  addGroupClass: (data: Omit<GroupClass, 'id' | 'createdAt' | 'updatedAt' | 'enrolledCount'>) => void;
+  updateGroupClass: (id: string, changes: Partial<Omit<GroupClass, 'id' | 'createdAt'>>) => void;
+  deleteGroupClass: (id: string) => void;
+  enrollClient: (classId: string, clientId: string, clientName: string, clientEmail: string) => void;
+  unenrollClient: (enrollmentId: string) => void;
+
   // Utilities
   clearError: () => void;
 }
@@ -70,11 +114,83 @@ export const useBookingStore = create<BookingStore>((set) => ({
   services: [],
   externalEvents: [],
   allReminders: [],
+  clients: loadClients(),
+  groupClasses: loadGroupClasses(),
+  enrollments: loadEnrollments(),
   loading: false,
   error: null,
   clientTimezone: detectClientTimezone(),
   providerTimezone: localStorage.getItem(PROVIDER_TZ_KEY) ?? DEFAULT_PROVIDER_TZ,
   policy: loadPolicy(),
+
+  // ── Clients ───────────────────────────────────────────────────────────────
+  fetchClients: () => {
+    const stored = loadClients();
+    if (USE_MOCK && stored.length === 0) {
+      saveClients(MOCK_CLIENTS);
+      set({ clients: MOCK_CLIENTS });
+    } else {
+      set({ clients: stored.length > 0 ? stored : USE_MOCK ? MOCK_CLIENTS : stored });
+    }
+  },
+
+  addClient: (data) =>
+    set((state) => ({ clients: svcAddClient(state.clients, data) })),
+
+  updateClient: (id, changes) =>
+    set((state) => ({ clients: svcUpdateClient(state.clients, id, changes) })),
+
+  deleteClient: (id) =>
+    set((state) => ({ clients: svcDeleteClient(state.clients, id) })),
+
+  addClientNote: (clientId, content) =>
+    set((state) => ({ clients: svcAddNote(state.clients, clientId, content) })),
+
+  deleteClientNote: (clientId, noteId) =>
+    set((state) => ({ clients: svcDeleteNote(state.clients, clientId, noteId) })),
+
+  editClientNote: (clientId, noteId, content) =>
+    set((state) => ({ clients: svcEditNote(state.clients, clientId, noteId, content) })),
+
+  // ── Group Scheduling ────────────────────────────────────────────────────────
+  fetchGroupClasses: () => {
+    const storedClasses = loadGroupClasses();
+    const storedEnrollments = loadEnrollments();
+    if (USE_MOCK && storedClasses.length === 0) {
+      saveGroupClasses(MOCK_GROUP_CLASSES);
+      saveEnrollments(MOCK_ENROLLMENTS);
+      set({ groupClasses: MOCK_GROUP_CLASSES, enrollments: MOCK_ENROLLMENTS });
+    } else {
+      set({
+        groupClasses: storedClasses.length > 0 ? storedClasses : USE_MOCK ? MOCK_GROUP_CLASSES : storedClasses,
+        enrollments: storedEnrollments.length > 0 ? storedEnrollments : USE_MOCK ? MOCK_ENROLLMENTS : storedEnrollments,
+      });
+    }
+  },
+
+  addGroupClass: (data) =>
+    set((state) => ({ groupClasses: svcAddGroupClass(state.groupClasses, data) })),
+
+  updateGroupClass: (id, changes) =>
+    set((state) => ({ groupClasses: svcUpdateGroupClass(state.groupClasses, id, changes) })),
+
+  deleteGroupClass: (id) =>
+    set((state) => ({
+      groupClasses: svcDeleteGroupClass(state.groupClasses, id),
+      enrollments: state.enrollments.filter((e) => e.classId !== id),
+    })),
+
+  enrollClient: (classId, clientId, clientName, clientEmail) =>
+    set((state) => {
+      const result = svcEnrollClient(state.enrollments, state.groupClasses, classId, clientId, clientName, clientEmail);
+      return { enrollments: result.enrollments, groupClasses: result.classes };
+    }),
+
+  unenrollClient: (enrollmentId) =>
+    set((state) => {
+      const result = svcUnenrollClient(state.enrollments, state.groupClasses, enrollmentId);
+      return { enrollments: result.enrollments, groupClasses: result.classes };
+    }),
 
   // ── Bookings ───────────────────────────────────────────────────────────────
   fetchBookings: async () => {

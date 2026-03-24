@@ -10,6 +10,8 @@ import { BookingPage } from './pages/BookingPage';
 import { RemindersPage } from './pages/RemindersPage';
 import { TimeZonePage } from './pages/TimeZonePage';
 import { BookingPoliciesPage } from './pages/BookingPoliciesPage';
+import { ClientsPage } from './pages/ClientsPage';
+import { GroupSchedulingPage } from './pages/GroupSchedulingPage';
 
 function App() {
   return (
@@ -37,6 +39,8 @@ function App() {
                 <Route path="/reminders" element={<RemindersPage />} />
                 <Route path="/timezone" element={<TimeZonePage />} />
                 <Route path="/policies" element={<BookingPoliciesPage />} />
+                <Route path="/clients" element={<ClientsPage />} />
+                <Route path="/groups" element={<GroupSchedulingPage />} />
               </Routes>
             </AppLayout>
           }

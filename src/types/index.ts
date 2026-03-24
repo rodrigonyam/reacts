@@ -158,6 +158,87 @@ export interface PolicyCheckResult {
   refundLabel?: string;
 }
 
+// ── Client Database ───────────────────────────────────────────────────────────
+
+export type ClientStatus = 'active' | 'inactive';
+
+export interface ClientNote {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Client {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  dateOfBirth?: string;      // YYYY-MM-DD
+  address?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  notes: ClientNote[];        // private provider notes
+  tags: string[];             // freeform labels e.g. "VIP", "mobility-issues"
+  status: ClientStatus;
+  /** Links to User.id / Booking.userId for cross-referencing bookings */
+  userId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Group Scheduling & Recurring Bookings ─────────────────────────────────────
+
+export type RecurrenceFrequency = 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly';
+
+export interface RecurrenceRule {
+  frequency: RecurrenceFrequency;
+  /** Total occurrences (mutually exclusive with endDate). Ignored when frequency is 'none'. */
+  occurrences?: number;
+  /** ISO date YYYY-MM-DD — last occurrence (alternative to occurrences). */
+  endDate?: string;
+  /** ISO weekday numbers 0=Sun … 6=Sat — applies to 'weekly' and 'biweekly' only. */
+  daysOfWeek?: number[];
+}
+
+export type GroupClassStatus = 'active' | 'cancelled' | 'completed';
+
+export interface GroupClass {
+  id: string;
+  name: string;
+  description?: string;
+  serviceId: string;
+  instructorName?: string;
+  location?: string;
+  capacity: number;
+  enrolledCount: number;
+  tags: string[];
+  status: GroupClassStatus;
+  /** First session date YYYY-MM-DD */
+  startDate: string;
+  startTime: string;  // HH:mm
+  endTime: string;    // HH:mm
+  recurrenceRule: RecurrenceRule;
+  color?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type EnrollmentStatus = 'enrolled' | 'waitlisted' | 'cancelled';
+
+export interface GroupEnrollment {
+  id: string;
+  classId: string;
+  clientId: string;
+  clientName?: string;
+  clientEmail?: string;
+  status: EnrollmentStatus;
+  enrolledAt: string;
+  notes?: string;
+}
+
 // ── Form input types ──────────────────────────────────────────────────────────
 
 export interface BookingFormData {
