@@ -80,6 +80,8 @@ export function Dashboard() {
       ) : (
         <BookingCalendar
           bookings={bookings}
+          slots={slots}
+          showAvailability={true}
           onSelectSlot={handleSlotSelect}
           onSelectEvent={handleEventSelect}
         />

@@ -4,7 +4,7 @@
  * In production they are created via /api/reminders on your backend,
  * which integrates with SendGrid (email) and Twilio (SMS).
  */
-import { api } from './api';
+import api from './api';
 import type { ScheduledReminder, ReminderConfig, ReminderTiming, ReminderChannel } from '../types';
 import { addHours, addMinutes, addWeeks, parseISO } from 'date-fns';
 

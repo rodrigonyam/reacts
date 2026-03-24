@@ -3,7 +3,7 @@
  * Clients receive a link /reschedule/<token> via their confirmation email.
  * In mock mode the token is generated client-side.
  */
-import { api } from './api';
+import api from './api';
 import type { RescheduleToken, Booking } from '../types';
 
 export const rescheduleService = {

@@ -4,7 +4,7 @@
  * In production mode it calls /api/payments on your backend, which creates
  * the Stripe PaymentIntent and returns the clientSecret.
  */
-import { api } from './api';
+import api from './api';
 import type { PaymentInfo } from '../types';
 
 export interface CreatePaymentIntentRequest {

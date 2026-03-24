@@ -18,6 +18,7 @@ export function BookingsList() {
   const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     fetchBookings();
@@ -92,6 +93,8 @@ export function BookingsList() {
                   <th className="px-6 py-3 text-left">Date</th>
                   <th className="px-6 py-3 text-left">Time</th>
                   <th className="px-6 py-3 text-left">Status</th>
+                  <th className="px-6 py-3 text-left">Payment</th>
+                  <th className="px-6 py-3 text-left">Reminders</th>
                   <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -108,8 +111,30 @@ export function BookingsList() {
                       {b.slot ? `${b.slot.startTime}–${b.slot.endTime}` : '—'}
                     </td>
                     <td className="px-6 py-4"><StatusBadge status={b.status} /></td>
+                    <td className="px-6 py-4">
+                      {b.payment ? (
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                          b.payment.status === 'paid' ? 'bg-green-50 text-green-700' :
+                          b.payment.status === 'failed' ? 'bg-red-50 text-red-700' :
+                          'bg-gray-50 text-gray-600'
+                        }`}>
+                          {b.payment.status === 'paid' && '✅'}
+                          {b.payment.status === 'failed' && '❌'}
+                          {b.payment.status === 'unpaid' && '⏳'}
+                          {b.payment.status !== 'paid' && b.payment.status !== 'failed' && b.payment.status !== 'unpaid' && '💳'}
+                          {b.payment.status === 'paid'
+                            ? `$${(b.payment.amount / 100).toFixed(2)} paid`
+                            : b.payment.status}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Unpaid</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <ReminderBadge reminders={b.reminders ?? []} />
+                    </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="inline-flex gap-1">
+                      <div className="inline-flex gap-1 flex-wrap justify-end">
                         {b.status === 'pending' && (
                           <button
                             onClick={() => updateBookingStatus(b.id, 'confirmed')}
@@ -117,10 +142,26 @@ export function BookingsList() {
                           >Confirm</button>
                         )}
                         {(b.status === 'confirmed' || b.status === 'pending') && (
-                          <button
-                            onClick={() => updateBookingStatus(b.id, 'completed')}
-                            className="rounded px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
-                          >Complete</button>
+                          <>
+                            <button
+                              onClick={() => updateBookingStatus(b.id, 'completed')}
+                              className="rounded px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
+                            >Complete</button>
+                            <button
+                              onClick={() => setRescheduleBooking(b)}
+                              className="rounded px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-50"
+                            >Reschedule</button>
+                            <button
+                              onClick={() => {
+                                const rt = mockGenerateToken(b.id);
+                                const link = `${window.location.origin}/reschedule/${rt.token}`;
+                                navigator.clipboard.writeText(link);
+                                toast.success('Reschedule link copied to clipboard!');
+                              }}
+                              className="rounded px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100"
+                              title="Copy client reschedule link"
+                            >🔗 Link</button>
+                          </>
                         )}
                         {b.status !== 'cancelled' && (
                           <button
@@ -158,6 +199,13 @@ export function BookingsList() {
             onCancel={() => setShowForm(false)}
           />
         </Modal>
+      )}
+
+      {rescheduleBooking && (
+        <RescheduleModal
+          booking={rescheduleBooking}
+          onClose={() => setRescheduleBooking(null)}
+        />
       )}
     </div>
   );
