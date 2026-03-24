@@ -5,6 +5,9 @@ const NAV_ITEMS = [
   { to: '/bookings', label: 'Bookings', icon: '📋', end: false },
   { to: '/slots', label: 'Slots', icon: '🕐', end: false },
   { to: '/calendar-sync', label: 'Calendar Sync', icon: '🔄', end: false },
+  { to: '/reminders',     label: 'Reminders',     icon: '🔔', end: false },
+  { to: '/timezone',      label: 'Time Zones',     icon: '🌍', end: false },
+  { to: '/policies',      label: 'Policies',       icon: '📋', end: false },
 ];
 
 export function Sidebar() {

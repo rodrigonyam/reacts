@@ -1,13 +1,14 @@
 /**
- * RescheduleModal — lets an admin or confirmed client pick a new time slot
- * for an existing booking. Sends the updated slot to the store/API.
+ * RescheduleModal — lets an admin pick a new time slot for an existing booking.
+ * Shows policy rules, eligibility status, and an admin override option.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 import { Modal } from '../ui/Modal';
 import { useBookingStore } from '../../store/bookingStore';
 import type { Booking, TimeSlot } from '../../types';
+import { checkRescheduleEligibility } from '../../services/policyService';
 
 interface RescheduleModalProps {
   booking: Booking;
@@ -15,10 +16,11 @@ interface RescheduleModalProps {
 }
 
 export function RescheduleModal({ booking, onClose }: RescheduleModalProps) {
-  const { slots, fetchSlots, rescheduleBooking } = useBookingStore();
+  const { slots, fetchSlots, rescheduleBooking, policy } = useBookingStore();
   const [date, setDate] = useState(booking.slot?.date ?? format(new Date(), 'yyyy-MM-dd'));
   const [selectedSlotId, setSelectedSlotId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [adminOverride, setAdminOverride] = useState(false);
 
   useEffect(() => {
     fetchSlots(date);
@@ -27,6 +29,13 @@ export function RescheduleModal({ booking, onClose }: RescheduleModalProps) {
   const availableSlots: TimeSlot[] = slots.filter(
     (s) => s.date === date && s.available && s.id !== booking.slotId,
   );
+
+  const eligibility = useMemo(
+    () => checkRescheduleEligibility(booking, policy),
+    [booking, policy],
+  );
+
+  const canReschedule = eligibility.eligible || (policy.adminCanOverride && adminOverride);
 
   const handleReschedule = async () => {
     if (!selectedSlotId) { toast.error('Please select a new time slot.'); return; }
@@ -58,7 +67,55 @@ export function RescheduleModal({ booking, onClose }: RescheduleModalProps) {
               <> · {format(parseISO(booking.slot.date), 'MMM d, yyyy')} at {booking.slot.startTime}</>
             )}
           </p>
+          {(booking.rescheduleCount ?? 0) > 0 && (
+            <p className="mt-1 text-xs text-amber-600">
+              Rescheduled {booking.rescheduleCount} time{booking.rescheduleCount !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
+
+        {/* Policy info banner */}
+        <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-2.5 text-xs text-gray-600 space-y-0.5">
+          <p className="font-semibold text-gray-500 uppercase tracking-wide text-xs mb-1">📋 Policy</p>
+          {policy.rescheduleEnabled ? (
+            <>
+              <p>Max reschedules: {policy.maxReschedules === 0 ? 'Unlimited' : policy.maxReschedules}</p>
+              <p>Notice required: {policy.rescheduleNoticeHours}h before appointment</p>
+            </>
+          ) : (
+            <p>Rescheduling is disabled by policy.</p>
+          )}
+        </div>
+
+        {/* Policy eligibility alert */}
+        {!eligibility.eligible && (
+          <div className={`rounded-lg px-4 py-3 text-sm ${policy.adminCanOverride ? 'bg-yellow-50 border border-yellow-200' : 'bg-red-50 border border-red-200'}`}>
+            <p className={`font-semibold ${policy.adminCanOverride ? 'text-yellow-800' : 'text-red-800'}`}>
+              {policy.adminCanOverride ? '⚠️ Policy violation' : '🚫 Cannot reschedule'}
+            </p>
+            <p className={`mt-0.5 text-xs ${policy.adminCanOverride ? 'text-yellow-700' : 'text-red-700'}`}>
+              {eligibility.reason}
+            </p>
+            {policy.adminCanOverride && (
+              <label className="mt-2 flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={adminOverride}
+                  onChange={(e) => setAdminOverride(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-yellow-400 text-yellow-600"
+                />
+                <span className="text-xs font-medium text-yellow-700">Override policy (admin)</span>
+              </label>
+            )}
+          </div>
+        )}
+
+        {/* Eligibility warning (still eligible but close to limit) */}
+        {eligibility.eligible && eligibility.warning && (
+          <div className="rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-2.5 text-xs text-yellow-800">
+            ⚠️ {eligibility.warning}
+          </div>
+        )}
 
         {/* Date picker */}
         <div>
@@ -120,7 +177,7 @@ export function RescheduleModal({ booking, onClose }: RescheduleModalProps) {
           <button
             type="button"
             onClick={handleReschedule}
-            disabled={!selectedSlotId || submitting}
+            disabled={!selectedSlotId || submitting || !canReschedule}
             className="flex items-center gap-2 rounded-lg bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50 transition-colors"
           >
             {submitting ? (

@@ -7,6 +7,9 @@ import { SlotManager } from './components/slots/SlotManager';
 import { ReschedulePage } from './pages/ReschedulePage';
 import { CalendarSyncPage } from './pages/CalendarSyncPage';
 import { BookingPage } from './pages/BookingPage';
+import { RemindersPage } from './pages/RemindersPage';
+import { TimeZonePage } from './pages/TimeZonePage';
+import { BookingPoliciesPage } from './pages/BookingPoliciesPage';
 
 function App() {
   return (
@@ -31,6 +34,9 @@ function App() {
                 <Route path="/bookings" element={<BookingsList />} />
                 <Route path="/slots" element={<SlotManager />} />
                 <Route path="/calendar-sync" element={<CalendarSyncPage />} />
+                <Route path="/reminders" element={<RemindersPage />} />
+                <Route path="/timezone" element={<TimeZonePage />} />
+                <Route path="/policies" element={<BookingPoliciesPage />} />
               </Routes>
             </AppLayout>
           }

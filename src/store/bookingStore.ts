@@ -1,10 +1,12 @@
 import { create } from 'zustand';
-import type { Booking, TimeSlot, Service, BookingStatus, ExternalCalendarEvent, ScheduledReminder } from '../types';
+import type { Booking, TimeSlot, Service, BookingStatus, ExternalCalendarEvent, ScheduledReminder, BookingPolicy } from '../types';
 import { bookingService } from '../services/bookingService';
 import { slotService } from '../services/slotService';
 import { serviceService } from '../services/serviceService';
 import { calendarSyncService } from '../services/calendarSyncService';
 import { reminderService, buildMockAllReminders } from '../services/reminderService';
+import { detectClientTimezone, DEFAULT_PROVIDER_TZ, PROVIDER_TZ_KEY } from '../services/timezoneService';
+import { loadPolicy, savePolicy } from '../services/policyService';
 import {
   MOCK_BOOKINGS,
   MOCK_SLOTS,
@@ -41,6 +43,23 @@ interface BookingStore {
   // Calendar Sync
   fetchExternalEvents: () => Promise<void>;
 
+  // Reminders
+  allReminders: ScheduledReminder[];
+  fetchAllReminders: () => Promise<void>;
+  resendReminder: (reminderId: string) => Promise<void>;
+  cancelReminder: (reminderId: string) => Promise<void>;
+  sendReminderNow: (bookingId: string, channel: 'email' | 'sms') => Promise<void>;
+
+  // Timezones
+  clientTimezone: string;
+  providerTimezone: string;
+  setClientTimezone: (tz: string) => void;
+  setProviderTimezone: (tz: string) => void;
+
+  // Policy
+  policy: BookingPolicy;
+  setPolicy: (policy: BookingPolicy) => void;
+
   // Utilities
   clearError: () => void;
 }
@@ -53,6 +72,9 @@ export const useBookingStore = create<BookingStore>((set) => ({
   allReminders: [],
   loading: false,
   error: null,
+  clientTimezone: detectClientTimezone(),
+  providerTimezone: localStorage.getItem(PROVIDER_TZ_KEY) ?? DEFAULT_PROVIDER_TZ,
+  policy: loadPolicy(),
 
   // ── Bookings ───────────────────────────────────────────────────────────────
   fetchBookings: async () => {
@@ -155,7 +177,7 @@ export const useBookingStore = create<BookingStore>((set) => ({
         set((state) => ({
           bookings: state.bookings.map((b) =>
             b.id === bookingId
-              ? { ...b, slotId: newSlotId, slot: newSlot ?? b.slot, updatedAt: new Date().toISOString() }
+              ? { ...b, slotId: newSlotId, slot: newSlot ?? b.slot, rescheduleCount: (b.rescheduleCount ?? 0) + 1, updatedAt: new Date().toISOString() }
               : b,
           ),
           slots: state.slots.map((s) => {
@@ -189,7 +211,7 @@ export const useBookingStore = create<BookingStore>((set) => ({
     }
   },
 
-  // ── Reminders ────────────────────────────────────────────────────────────────────────────
+  // ── Reminders ───────────────────────────────────────────────────────────────
   fetchAllReminders: async () => {
     set({ loading: true, error: null });
     try {
@@ -252,4 +274,16 @@ export const useBookingStore = create<BookingStore>((set) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  // ── Timezones ──────────────────────────────────────────────────────────────
+  setClientTimezone: (tz) => set({ clientTimezone: tz }),
+  setProviderTimezone: (tz) => {
+    localStorage.setItem(PROVIDER_TZ_KEY, tz);
+    set({ providerTimezone: tz });
+  },
+
+  setPolicy: (policy) => {
+    savePolicy(policy);
+    set({ policy });
+  },
 }));

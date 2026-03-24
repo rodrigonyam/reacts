@@ -13,12 +13,13 @@ import toast from 'react-hot-toast';
 const STATUS_FILTERS: (BookingStatus | 'all')[] = ['all', 'pending', 'confirmed', 'completed', 'cancelled'];
 
 export function BookingsList() {
-  const { bookings, slots, services, loading, fetchBookings, fetchSlots, fetchServices, updateBookingStatus, removeBooking } =
+  const { bookings, slots, services, loading, fetchBookings, fetchSlots, fetchServices, updateBookingStatus, removeBooking, sendReminderNow } =
     useBookingStore();
   const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBookings();
@@ -161,6 +162,22 @@ export function BookingsList() {
                               className="rounded px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100"
                               title="Copy client reschedule link"
                             >🔗 Link</button>
+                            <button
+                              onClick={async () => {
+                                setRemindingId(b.id);
+                                try {
+                                  await sendReminderNow(b.id, 'email');
+                                  toast.success(`Reminder sent to ${b.user?.email ?? 'client'}`);
+                                } catch {
+                                  toast.error('Failed to send reminder.');
+                                } finally {
+                                  setRemindingId(null);
+                                }
+                              }}
+                              disabled={remindingId === b.id}
+                              className="rounded px-2 py-1 text-xs font-medium text-amber-600 hover:bg-amber-50 disabled:opacity-50"
+                              title="Send reminder now"
+                            >{remindingId === b.id ? '…' : '🔔'}</button>
                           </>
                         )}
                         {b.status !== 'cancelled' && (

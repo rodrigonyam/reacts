@@ -117,8 +117,45 @@ export interface Booking {
   payment?: PaymentInfo;
   reminders?: ScheduledReminder[];
   rescheduleToken?: string;
+  rescheduleCount?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+// ── Booking Policies ──────────────────────────────────────────────────────────
+
+export interface RefundTier {
+  /** Client must cancel at least this many hours before the appointment to get this refund percentage */
+  hoursBeforeAppointment: number;
+  refundPct: number; // 0–100
+  label: string;     // e.g. "Full refund", "50% refund"
+}
+
+export interface BookingPolicy {
+  // Reschedule rules
+  rescheduleEnabled: boolean;
+  /** 0 = unlimited */
+  maxReschedules: number;
+  /** Minimum hours before appointment that a client can reschedule */
+  rescheduleNoticeHours: number;
+
+  // Cancellation rules
+  cancellationEnabled: boolean;
+  /** Minimum hours before appointment that a client can cancel (0 = anytime) */
+  cancellationNoticeHours: number;
+  /** Sorted descending by hoursBeforeAppointment (most generous first) */
+  refundTiers: RefundTier[];
+
+  /** Admins can override policy restrictions */
+  adminCanOverride: boolean;
+}
+
+export interface PolicyCheckResult {
+  eligible: boolean;
+  reason?: string;   // shown when not eligible
+  warning?: string;  // shown when eligible but with caveat
+  refundPct?: number;
+  refundLabel?: string;
 }
 
 // ── Form input types ──────────────────────────────────────────────────────────

@@ -18,6 +18,13 @@ import { PaymentForm } from '../components/payment/PaymentForm';
 import { Spinner } from '../components/ui/Spinner';
 import type { Service, TimeSlot, PaymentInfo } from '../types';
 import { MOCK_SERVICES, MOCK_SLOTS } from '../services/mockData';
+import {
+  COMMON_TIMEZONES,
+  convertSlotRange,
+  convertSlotTime,
+  getTimezoneBadge,
+  isSameTimezone,
+} from '../services/timezoneService';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.DEV;
 
@@ -163,13 +170,20 @@ interface ConfirmationProps {
   slot: TimeSlot;
   intake: IntakeData;
   payment: PaymentInfo;
+  clientTimezone: string;
+  providerTimezone: string;
 }
-function ConfirmationCard({ bookingId, service, slot, intake, payment }: ConfirmationProps) {
+function ConfirmationCard({ bookingId, service, slot, intake, payment, clientTimezone, providerTimezone }: ConfirmationProps) {
   const slotDate = parseISO(`${slot.date}T${slot.startTime}:00`);
   const calStart = `${slot.date}T${slot.startTime}:00`.replace(/[-:]/g, '').replace('T', 'T');
   const calEnd = `${slot.date}T${slot.endTime}:00`.replace(/[-:]/g, '').replace('T', 'T');
   const gcalLink =
     `https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(service.name)}&dates=${calStart}/${calEnd}&details=${encodeURIComponent('Booking ID: ' + bookingId)}`;
+
+  const sameZone = isSameTimezone(clientTimezone, providerTimezone);
+  const displayTimeRange = sameZone
+    ? `${slot.startTime} – ${slot.endTime}`
+    : convertSlotRange(slot.date, slot.startTime, slot.endTime, providerTimezone, clientTimezone);
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -201,7 +215,16 @@ function ConfirmationCard({ bookingId, service, slot, intake, payment }: Confirm
           </div>
           <div className="flex justify-between">
             <dt className="text-gray-500">Time</dt>
-            <dd className="font-medium text-gray-900">{slot.startTime} – {slot.endTime}</dd>
+            <dd className="font-medium text-gray-900">
+              {displayTimeRange}
+              <span className="ml-1 text-xs text-gray-400">{getTimezoneBadge(clientTimezone)}</span>
+              {!sameZone && (
+                <div className="text-xs text-gray-400">
+                  {slot.startTime} – {slot.endTime}{' '}
+                  <span>{getTimezoneBadge(providerTimezone)}</span>
+                </div>
+              )}
+            </dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-gray-500">Client</dt>
@@ -241,7 +264,15 @@ function ConfirmationCard({ bookingId, service, slot, intake, payment }: Confirm
 // ══════════════════════════════════════════════════════════════════════════════
 export function BookingPage() {
   const { serviceId: preselectedServiceId } = useParams<{ serviceId?: string }>();
-  const { slots: storeSlots, services: storeServices, fetchSlots, fetchServices } = useBookingStore();
+  const {
+    slots: storeSlots,
+    services: storeServices,
+    fetchSlots,
+    fetchServices,
+    clientTimezone,
+    providerTimezone,
+    setClientTimezone,
+  } = useBookingStore();
 
   // Resolve services & slots — prefer store, fall back to mock
   const services: Service[] = storeServices.length > 0 ? storeServices : MOCK_SERVICES;
@@ -258,6 +289,7 @@ export function BookingPage() {
   // Step 2
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [showTzPicker, setShowTzPicker] = useState(false);
 
   // Step 3
   const [intake, setIntake] = useState<IntakeData>(EMPTY_INTAKE);
@@ -406,6 +438,50 @@ export function BookingPage() {
                   )}
                 </h2>
 
+                {/* ── Timezone banner ─────────────────────────────────── */}
+                <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm text-sky-800">
+                      <span>🌍</span>
+                      <span>
+                        Times shown in{' '}
+                        <strong>{getTimezoneBadge(clientTimezone)}</strong>
+                        {!isSameTimezone(clientTimezone, providerTimezone) && (
+                          <span className="ml-1 text-sky-600">
+                            · Provider is in{' '}
+                            <span className="font-medium">{getTimezoneBadge(providerTimezone)}</span>
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowTzPicker((v) => !v)}
+                      className="text-xs font-medium text-sky-600 hover:text-sky-800 hover:underline"
+                    >
+                      {showTzPicker ? 'Hide' : 'Change timezone'}
+                    </button>
+                  </div>
+                  {showTzPicker && (
+                    <div className="mt-3">
+                      <select
+                        value={clientTimezone}
+                        onChange={(e) => {
+                          setClientTimezone(e.target.value);
+                          setShowTzPicker(false);
+                        }}
+                        className="w-full rounded-lg border border-sky-300 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      >
+                        {COMMON_TIMEZONES.map((tz) => (
+                          <option key={tz.iana} value={tz.iana}>
+                            {tz.label} — {tz.iana}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
                 {/* Date strip */}
                 <div className="mb-5 flex gap-2 overflow-x-auto pb-2">
                   {buildDateRange().map((d) => {
@@ -441,6 +517,10 @@ export function BookingPage() {
                     {visibleSlots.map((slot) => {
                       const full = !slot.available;
                       const chosen = selectedSlot?.id === slot.id;
+                      const sameZone = isSameTimezone(clientTimezone, providerTimezone);
+                      const displayTime = sameZone
+                        ? slot.startTime
+                        : convertSlotTime(slot.date, slot.startTime, providerTimezone, clientTimezone);
                       return (
                         <button
                           key={slot.id}
@@ -452,7 +532,12 @@ export function BookingPage() {
                               chosen ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm' :
                               'border-gray-200 bg-white text-gray-700 hover:border-sky-300 hover:bg-sky-50'}`}
                         >
-                          <div>{slot.startTime}</div>
+                          <div>{displayTime}</div>
+                          {!sameZone && !full && (
+                            <div className="mt-0.5 text-[9px] text-gray-400">
+                              {slot.startTime} {getTimezoneBadge(providerTimezone)}
+                            </div>
+                          )}
                           <div className="mt-0.5 text-[10px] text-gray-400">
                             {full ? 'Full' : `${slot.capacity - slot.booked} left`}
                           </div>
@@ -709,6 +794,8 @@ export function BookingPage() {
                 slot={selectedSlot}
                 intake={intake}
                 payment={confirmedPayment}
+                clientTimezone={clientTimezone}
+                providerTimezone={providerTimezone}
               />
             )}
           </div>
