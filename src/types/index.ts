@@ -2,6 +2,50 @@
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
 
+// ── Payment ───────────────────────────────────────────────────────────────────
+
+export type PaymentStatus = 'unpaid' | 'processing' | 'paid' | 'failed' | 'refunded';
+
+export interface PaymentInfo {
+  status: PaymentStatus;
+  amount: number;
+  currency: string;
+  intentId?: string;
+  paidAt?: string;
+  last4?: string;
+  brand?: string;
+}
+
+// ── Reminders ─────────────────────────────────────────────────────────────────
+
+export type ReminderChannel = 'email' | 'sms' | 'both';
+export type ReminderTiming = '1week' | '24h' | '2h' | '30min';
+
+export interface ReminderConfig {
+  enabled: boolean;
+  channels: ReminderChannel;
+  timings: ReminderTiming[];
+}
+
+export interface ScheduledReminder {
+  id: string;
+  bookingId: string;
+  channel: 'email' | 'sms';
+  timing: ReminderTiming;
+  scheduledFor: string;
+  sentAt?: string;
+  status: 'pending' | 'sent' | 'failed';
+}
+
+// ── Reschedule ────────────────────────────────────────────────────────────────
+
+export interface RescheduleToken {
+  token: string;
+  bookingId: string;
+  expiresAt: string;
+  used: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -40,6 +84,9 @@ export interface Booking {
   service?: Service;
   status: BookingStatus;
   notes?: string;
+  payment?: PaymentInfo;
+  reminders?: ScheduledReminder[];
+  rescheduleToken?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,6 +101,8 @@ export interface BookingFormData {
   date: string;
   slotId: string;
   notes?: string;
+  reminderChannels?: ReminderChannel;
+  reminderTimings?: ReminderTiming[];
 }
 
 export interface SlotFormData {
