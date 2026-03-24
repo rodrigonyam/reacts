@@ -6,6 +6,7 @@ import { BookingsList } from './components/bookings/BookingsList';
 import { SlotManager } from './components/slots/SlotManager';
 import { ReschedulePage } from './pages/ReschedulePage';
 import { CalendarSyncPage } from './pages/CalendarSyncPage';
+import { BookingPage } from './pages/BookingPage';
 
 function App() {
   return (
@@ -15,8 +16,10 @@ function App() {
         toastOptions={{ duration: 4000, style: { fontSize: '0.875rem' } }}
       />
       <Routes>
-        {/* Public standalone page — no app shell */}
+        {/* Public standalone pages — no app shell */}
         <Route path="/reschedule/:token" element={<ReschedulePage />} />
+        <Route path="/book" element={<BookingPage />} />
+        <Route path="/book/:serviceId" element={<BookingPage />} />
 
         {/* Main app with sidebar layout */}
         <Route

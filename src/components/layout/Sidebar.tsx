@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: '📅', end: true },
@@ -37,11 +37,17 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-gray-100 px-6 py-4">
-        <p className="text-xs text-gray-400">
-          Powered by React + Vite
-        </p>
+      {/* Book Now CTA */}
+      <div className="border-t border-gray-100 px-4 py-4">
+        <Link
+          to="/book"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 transition-colors"
+        >
+          📅 Client Booking Page
+        </Link>
+        <p className="mt-2 text-center text-[10px] text-gray-400">Share this link with your clients</p>
       </div>
     </aside>
   );

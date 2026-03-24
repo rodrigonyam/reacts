@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { Booking, TimeSlot, Service, BookingStatus, ExternalCalendarEvent } from '../types';
+import type { Booking, TimeSlot, Service, BookingStatus, ExternalCalendarEvent, ScheduledReminder } from '../types';
 import { bookingService } from '../services/bookingService';
 import { slotService } from '../services/slotService';
 import { serviceService } from '../services/serviceService';
 import { calendarSyncService } from '../services/calendarSyncService';
+import { reminderService, buildMockAllReminders } from '../services/reminderService';
 import {
   MOCK_BOOKINGS,
   MOCK_SLOTS,
@@ -49,6 +50,7 @@ export const useBookingStore = create<BookingStore>((set) => ({
   slots: [],
   services: [],
   externalEvents: [],
+  allReminders: [],
   loading: false,
   error: null,
 
@@ -184,6 +186,68 @@ export const useBookingStore = create<BookingStore>((set) => ({
       set({ externalEvents: events });
     } catch {
       // non-fatal — calendar sync failing shouldn't break the app
+    }
+  },
+
+  // ── Reminders ────────────────────────────────────────────────────────────────────────────
+  fetchAllReminders: async () => {
+    set({ loading: true, error: null });
+    try {
+      if (USE_MOCK) {
+        set({ allReminders: buildMockAllReminders(), loading: false });
+        return;
+      }
+      set({ loading: false });
+    } catch (err) {
+      set({ error: (err as Error).message, loading: false });
+    }
+  },
+
+  resendReminder: async (reminderId) => {
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      if (!USE_MOCK) await reminderService.resend(reminderId);
+      set((state) => ({
+        allReminders: state.allReminders.map((r) =>
+          r.id === reminderId
+            ? { ...r, status: 'sent' as const, sentAt: new Date().toISOString() }
+            : r,
+        ),
+      }));
+    } catch (err) {
+      set({ error: (err as Error).message });
+      throw err;
+    }
+  },
+
+  cancelReminder: async (reminderId) => {
+    try {
+      if (!USE_MOCK) await reminderService.cancel(reminderId);
+      set((state) => ({
+        allReminders: state.allReminders.filter((r) => r.id !== reminderId),
+      }));
+    } catch (err) {
+      set({ error: (err as Error).message });
+      throw err;
+    }
+  },
+
+  sendReminderNow: async (bookingId, channel) => {
+    try {
+      await new Promise((r) => setTimeout(r, 800));
+      const newReminder: ScheduledReminder = {
+        id: `rm-now-${Date.now()}`,
+        bookingId,
+        channel,
+        timing: '2h',
+        scheduledFor: new Date().toISOString(),
+        sentAt: new Date().toISOString(),
+        status: 'sent',
+      };
+      set((state) => ({ allReminders: [newReminder, ...state.allReminders] }));
+    } catch (err) {
+      set({ error: (err as Error).message });
+      throw err;
     }
   },
 
