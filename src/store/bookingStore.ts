@@ -32,6 +32,9 @@ interface BookingStore {
   // Services
   fetchServices: () => Promise<void>;
 
+  // Reschedule
+  rescheduleBooking: (bookingId: string, newSlotId: string) => Promise<void>;
+
   // Utilities
   clearError: () => void;
 }
@@ -133,6 +136,38 @@ export const useBookingStore = create<BookingStore>((set) => ({
       set({ services: data, loading: false });
     } catch (err) {
       set({ error: (err as Error).message, loading: false });
+    }
+  },
+
+  // ── Reschedule ─────────────────────────────────────────────────────────────
+  rescheduleBooking: async (bookingId, newSlotId) => {
+    try {
+      const newSlot = useBookingStore.getState().slots.find((s) => s.id === newSlotId);
+      if (USE_MOCK) {
+        set((state) => ({
+          bookings: state.bookings.map((b) =>
+            b.id === bookingId
+              ? { ...b, slotId: newSlotId, slot: newSlot ?? b.slot, updatedAt: new Date().toISOString() }
+              : b,
+          ),
+          slots: state.slots.map((s) => {
+            if (s.id === newSlotId) return { ...s, booked: s.booked + 1, available: s.booked + 1 < s.capacity };
+            const oldBooking = state.bookings.find((bk) => bk.id === bookingId);
+            if (oldBooking && s.id === oldBooking.slotId) return { ...s, booked: Math.max(0, s.booked - 1), available: true };
+            return s;
+          }),
+        }));
+        return;
+      }
+      await bookingService.updateStatus(bookingId, 'confirmed'); // placeholder — swap for real reschedule endpoint
+      set((state) => ({
+        bookings: state.bookings.map((b) =>
+          b.id === bookingId ? { ...b, slotId: newSlotId, slot: newSlot ?? b.slot } : b,
+        ),
+      }));
+    } catch (err) {
+      set({ error: (err as Error).message });
+      throw err;
     }
   },
 
