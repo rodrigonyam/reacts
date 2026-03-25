@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { to: '/clients',  label: 'Clients',       icon: '👤', end: false },
   { to: '/groups',   label: 'Group Classes',  icon: '👥', end: false },
   { to: '/staff',    label: 'Staff',          icon: '🧑‍⚕️', end: false },
+  { to: '/payment-settings', label: 'Payment Settings', icon: '💳', end: false },
+  { to: '/waivers', label: 'Waivers & Intake', icon: '📝', end: false },
 ];
 
 export function Sidebar() {

@@ -323,6 +323,50 @@ export interface CalendarEvent {
   color?: string;
 }
 
+// ── Waivers & Intake Forms ────────────────────────────────────────────────────
+
+export type FormFieldType = 'text' | 'textarea' | 'checkbox' | 'radio' | 'select' | 'date' | 'number';
+
+export interface WaiverFormField {
+  id: string;
+  label: string;
+  type: FormFieldType;
+  required: boolean;
+  placeholder?: string;
+  options?: string[];    // for radio / select
+  helpText?: string;
+}
+
+export interface WaiverTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  waiverText: string;       // full legal / consent text
+  requireSignature: boolean;
+  requireInitials: boolean;
+  /** Empty array means applies to ALL services */
+  serviceIds: string[];
+  customFields: WaiverFormField[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SignedWaiver {
+  id: string;
+  waiverId: string;
+  waiverName: string;
+  bookingId?: string;
+  serviceId?: string;
+  serviceName?: string;
+  clientName: string;
+  clientEmail: string;
+  /** Typed full name used as digital signature */
+  signatureName: string;
+  customFieldResponses: Record<string, string | boolean>;
+  signedAt: string;
+}
+
 // ── API response wrappers ─────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {

@@ -13,6 +13,8 @@ import { BookingPoliciesPage } from './pages/BookingPoliciesPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { GroupSchedulingPage } from './pages/GroupSchedulingPage';
 import { StaffManagementPage } from './pages/StaffManagementPage';
+import { PaymentGatewayPage } from './pages/PaymentGatewayPage';
+import { WaiverFormsPage } from './pages/WaiverFormsPage';
 
 function App() {
   return (
@@ -43,6 +45,8 @@ function App() {
                 <Route path="/clients" element={<ClientsPage />} />
                 <Route path="/groups" element={<GroupSchedulingPage />} />
                 <Route path="/staff" element={<StaffManagementPage />} />
+                <Route path="/payment-settings" element={<PaymentGatewayPage />} />
+                <Route path="/waivers" element={<WaiverFormsPage />} />
               </Routes>
             </AppLayout>
           }

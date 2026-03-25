@@ -16,9 +16,15 @@ import toast from 'react-hot-toast';
 import { useBookingStore } from '../store/bookingStore';
 import { PaymentForm } from '../components/payment/PaymentForm';
 import { Spinner } from '../components/ui/Spinner';
-import type { Service, TimeSlot, PaymentInfo, PaymentGatewaySettings } from '../types';
+import type { Service, TimeSlot, PaymentInfo, PaymentGatewaySettings, WaiverTemplate } from '../types';
 import { MOCK_SERVICES, MOCK_SLOTS } from '../services/mockData';
 import { loadGatewaySettings } from '../services/paymentGatewayService';
+import {
+  getWaiversForService,
+  buildEmptyResponses,
+  submitSignedWaiver,
+  linkWaiversToBooking,
+} from '../services/waiverService';
 import {
   COMMON_TIMEZONES,
   convertSlotRange,
@@ -30,7 +36,7 @@ import {
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.DEV;
 
 // ── Step labels ───────────────────────────────────────────────────────────────
-const STEPS = ['Service', 'Date & Time', 'Your Details', 'Payment', 'Confirmation'];
+const STEPS = ['Service', 'Date & Time', 'Your Details', 'Waivers & Consent', 'Payment', 'Confirmation'];
 
 // ── Intake form types ─────────────────────────────────────────────────────────
 interface IntakeData {
@@ -164,6 +170,223 @@ function Field({
 const INPUT_CLS =
   'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500';
 
+// ── Waiver step component ─────────────────────────────────────────────────────
+interface WaiverStepProps {
+  waivers: WaiverTemplate[];
+  signatures: Record<string, string>;
+  consented: Record<string, boolean>;
+  fieldValues: Record<string, Record<string, string | boolean>>;
+  errors: Record<string, string>;
+  onSignatureChange: (waiverId: string, value: string) => void;
+  onConsentChange: (waiverId: string, value: boolean) => void;
+  onFieldChange: (waiverId: string, fieldId: string, value: string | boolean) => void;
+  onBack: () => void;
+  onContinue: () => void;
+}
+
+function WaiverStep({
+  waivers,
+  signatures,
+  consented,
+  fieldValues,
+  errors,
+  onSignatureChange,
+  onConsentChange,
+  onFieldChange,
+  onBack,
+  onContinue,
+}: WaiverStepProps) {
+  if (waivers.length === 0) {
+    return (
+      <div>
+        <h2 className="mb-1 text-lg font-semibold text-gray-900">Waivers & Consent</h2>
+        <div className="my-8 flex flex-col items-center gap-3 text-center">
+          <span className="text-4xl">✅</span>
+          <p className="text-gray-500">No additional consent forms are required for this service.</p>
+        </div>
+        <div className="mt-6 flex justify-between">
+          <button type="button" onClick={onBack} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">
+            ← Back
+          </button>
+          <button type="button" onClick={onContinue} className="rounded-lg bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700">
+            Next: Payment →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="mb-1 text-lg font-semibold text-gray-900">Waivers & Consent</h2>
+      <p className="mb-5 text-sm text-gray-500">
+        Please review and digitally sign the following document{waivers.length > 1 ? 's' : ''} to proceed with your booking.
+      </p>
+
+      <div className="space-y-6">
+        {waivers.map((waiver) => (
+          <div key={waiver.id} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            {/* Waiver header */}
+            <div className="border-b border-gray-200 bg-sky-50 px-5 py-3">
+              <h3 className="font-semibold text-gray-900">{waiver.name}</h3>
+              {waiver.description && (
+                <p className="mt-0.5 text-xs text-gray-500">{waiver.description}</p>
+              )}
+            </div>
+
+            {/* Waiver text */}
+            <div className="max-h-56 overflow-y-auto px-5 py-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-gray-600">
+                  {waiver.waiverText}
+                </pre>
+              </div>
+            </div>
+
+            {/* Custom intake fields */}
+            {waiver.customFields.length > 0 && (
+              <div className="border-t border-gray-100 px-5 py-4 space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Additional Information</p>
+                {waiver.customFields.map((field) => {
+                  const val = (fieldValues[waiver.id] ?? {})[field.id];
+                  return (
+                    <div key={field.id}>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        {field.label}
+                        {field.required && <span className="ml-1 text-red-500">*</span>}
+                      </label>
+                      {field.helpText && (
+                        <p className="mb-1 text-xs text-gray-400">{field.helpText}</p>
+                      )}
+                      {field.type === 'checkbox' ? (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(val)}
+                            onChange={(e) => onFieldChange(waiver.id, field.id, e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                          />
+                          <span className="text-sm text-gray-600">Yes</span>
+                        </label>
+                      ) : field.type === 'textarea' ? (
+                        <textarea
+                          rows={3}
+                          value={String(val ?? '')}
+                          onChange={(e) => onFieldChange(waiver.id, field.id, e.target.value)}
+                          placeholder={field.placeholder}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        />
+                      ) : field.type === 'radio' ? (
+                        <div className="flex flex-wrap gap-3">
+                          {(field.options ?? []).map((opt) => (
+                            <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                              <input
+                                type="radio"
+                                name={`${waiver.id}-${field.id}`}
+                                value={opt}
+                                checked={val === opt}
+                                onChange={() => onFieldChange(waiver.id, field.id, opt)}
+                                className="h-4 w-4 border-gray-300 text-sky-600 focus:ring-sky-500"
+                              />
+                              {opt}
+                            </label>
+                          ))}
+                        </div>
+                      ) : field.type === 'select' ? (
+                        <select
+                          value={String(val ?? '')}
+                          onChange={(e) => onFieldChange(waiver.id, field.id, e.target.value)}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        >
+                          <option value="">— Select —</option>
+                          {(field.options ?? []).map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={field.type}
+                          value={String(val ?? '')}
+                          onChange={(e) => onFieldChange(waiver.id, field.id, e.target.value)}
+                          placeholder={field.placeholder}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Signature block */}
+            {waiver.requireSignature && (
+              <div className="border-t border-gray-100 bg-gray-50 px-5 py-4 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Digital Signature</p>
+                <p className="text-xs text-gray-500">
+                  Type your full legal name below to sign this document electronically.
+                </p>
+                <div>
+                  <input
+                    type="text"
+                    value={signatures[waiver.id] ?? ''}
+                    onChange={(e) => onSignatureChange(waiver.id, e.target.value)}
+                    placeholder="Type your full name here…"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-center focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    style={{ fontFamily: 'cursive', fontSize: '1.1rem' }}
+                  />
+                  {signatures[waiver.id] && (
+                    <div className="mt-2 rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3 text-center">
+                      <p
+                        className="text-xl text-gray-700"
+                        style={{ fontFamily: 'cursive', letterSpacing: '0.05em' }}
+                      >
+                        {signatures[waiver.id]}
+                      </p>
+                      <p className="mt-1 text-[10px] text-gray-400">
+                        ✓ Digital signature · {new Date().toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consented[waiver.id] ?? false}
+                    onChange={(e) => onConsentChange(waiver.id, e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  <span className="text-sm text-gray-600">
+                    I have read and understood the above document in its entirety, and I agree to its terms.
+                    My typed name constitutes a legally binding digital signature.
+                  </span>
+                </label>
+
+                {errors[waiver.id] && (
+                  <p className="text-xs text-red-600">{errors[waiver.id]}</p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 flex justify-between">
+        <button type="button" onClick={onBack} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">
+          ← Back
+        </button>
+        <button
+          type="button"
+          onClick={onContinue}
+          className="rounded-lg bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
+        >
+          Sign & Continue to Payment →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Confirmation card ─────────────────────────────────────────────────────────
 interface ConfirmationProps {
   bookingId: string;
@@ -232,11 +455,26 @@ function ConfirmationCard({ bookingId, service, slot, intake, payment, clientTim
             <dd className="font-medium text-gray-900">{intake.firstName} {intake.lastName}</dd>
           </div>
           <div className="flex justify-between border-t border-gray-200 pt-2">
-            <dt className="text-gray-500">Paid</dt>
+            <dt className="text-gray-500">
+              {payment.paymentType === 'deposit' ? 'Deposit Paid' : 'Paid'}
+            </dt>
             <dd className="font-bold text-green-700">
-              ${(payment.amount / 100).toFixed(2)} •••• {payment.last4}
+              {payment.gateway === 'paypal' ? (
+                <span>🅿️ ${(payment.amount / 100).toFixed(2)} via PayPal</span>
+              ) : (
+                <span>
+                  ${(payment.amount / 100).toFixed(2)}{payment.last4 ? ` •••• ${payment.last4}` : ''}
+                  {payment.gateway === 'square' && ' via Square'}
+                </span>
+              )}
             </dd>
           </div>
+          {payment.paymentType === 'deposit' && payment.remainingBalance !== undefined && (
+            <div className="flex justify-between text-amber-700 bg-amber-50 rounded-lg px-3 py-2 -mx-3">
+              <dt className="font-medium">Balance due at appointment</dt>
+              <dd className="font-bold">${(payment.remainingBalance / 100).toFixed(2)}</dd>
+            </div>
+          )}
         </dl>
       </div>
 
@@ -282,6 +520,9 @@ export function BookingPage() {
   const [step, setStep] = useState(1);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
+  // Payment gateway settings — loaded once on mount
+  const [gatewaySettings] = useState<PaymentGatewaySettings>(() => loadGatewaySettings());
+
   // Step 1
   const [selectedService, setSelectedService] = useState<Service | null>(
     preselectedServiceId ? (services.find((s) => s.id === preselectedServiceId) ?? null) : null,
@@ -296,9 +537,40 @@ export function BookingPage() {
   const [intake, setIntake] = useState<IntakeData>(EMPTY_INTAKE);
   const [intakeErrors, setIntakeErrors] = useState<Partial<Record<keyof IntakeData, string>>>({});
 
-  // Step 5 (after payment)
+  // Step 4: Waivers
+  const [applicableWaivers, setApplicableWaivers] = useState<WaiverTemplate[]>([]);
+  // map of waiverId → { signatureName, consented, fieldValues }
+  const [waiverSignatures, setWaiverSignatures] = useState<Record<string, string>>({});
+  const [waiverConsented, setWaiverConsented] = useState<Record<string, boolean>>({});
+  const [waiverFieldValues, setWaiverFieldValues] = useState<Record<string, Record<string, string | boolean>>>({});
+  const [waiverErrors, setWaiverErrors] = useState<Record<string, string>>({});
+  // saved SignedWaiver ids used to link to bookingId after payment
+  const [savedWaiverIds, setSavedWaiverIds] = useState<string[]>([]);
+
+  // Step 6 (after payment)
   const [confirmedBookingId, setConfirmedBookingId] = useState('');
   const [confirmedPayment, setConfirmedPayment] = useState<PaymentInfo | null>(null);
+
+  // Load waivers whenever the selected service changes
+  useEffect(() => {
+    if (selectedService) {
+      const waivers = getWaiversForService(selectedService.id);
+      setApplicableWaivers(waivers);
+      // Initialise per-waiver state
+      const sigs: Record<string, string> = {};
+      const consented: Record<string, boolean> = {};
+      const fields: Record<string, Record<string, string | boolean>> = {};
+      for (const w of waivers) {
+        sigs[w.id] = '';
+        consented[w.id] = false;
+        fields[w.id] = buildEmptyResponses(w);
+      }
+      setWaiverSignatures(sigs);
+      setWaiverConsented(consented);
+      setWaiverFieldValues(fields);
+      setWaiverErrors({});
+    }
+  }, [selectedService?.id]);
 
   // Load services & initial slots
   useEffect(() => {
@@ -344,14 +616,51 @@ export function BookingPage() {
     return Object.keys(errs).length === 0;
   };
 
+  // ── Waiver validation & submission ──────────────────────────────────────
+  const validateAndSubmitWaivers = (): boolean => {
+    const errs: Record<string, string> = {};
+    for (const waiver of applicableWaivers) {
+      if (waiver.requireSignature && !waiverSignatures[waiver.id]?.trim()) {
+        errs[waiver.id] = 'Please type your full name as your digital signature.';
+      } else if (!waiverConsented[waiver.id]) {
+        errs[waiver.id] = 'Please confirm your consent by checking the box.';
+      }
+    }
+    setWaiverErrors(errs);
+    if (Object.keys(errs).length > 0) return false;
+
+    // Persist signed waivers
+    const ids: string[] = [];
+    for (const waiver of applicableWaivers) {
+      const signed = submitSignedWaiver({
+        waiverId: waiver.id,
+        waiverName: waiver.name,
+        serviceId: selectedService?.id,
+        serviceName: selectedService?.name,
+        clientName: `${intake.firstName} ${intake.lastName}`,
+        clientEmail: intake.email,
+        signatureName: waiverSignatures[waiver.id] ?? '',
+        customFieldResponses: waiverFieldValues[waiver.id] ?? {},
+        signedAt: new Date().toISOString(),
+      });
+      ids.push(signed.id);
+    }
+    setSavedWaiverIds(ids);
+    return true;
+  };
+
   // ── Payment success → create booking ────────────────────────────────────
   const handlePaymentSuccess = (payment: PaymentInfo) => {
     if (!selectedService || !selectedSlot) return;
     const bookingId = `BK-${Date.now().toString(36).toUpperCase()}`;
     setConfirmedBookingId(bookingId);
     setConfirmedPayment(payment);
+    // Link saved waivers to this booking
+    if (savedWaiverIds.length > 0) {
+      linkWaiversToBooking(savedWaiverIds, bookingId);
+    }
     toast.success('Booking confirmed!');
-    setStep(5);
+    setStep(6);
   };
 
   // ── Intake change helper ─────────────────────────────────────────────────
@@ -379,7 +688,7 @@ export function BookingPage() {
       {/* Main */}
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         {/* Hero copy */}
-        {step < 5 && (
+        {step < 6 && (
           <div className="mb-6 text-center">
             <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Book Your Appointment</h1>
             <p className="mt-1 text-gray-500">Choose a service, pick a time, and you're done.</p>
@@ -387,7 +696,7 @@ export function BookingPage() {
         )}
 
         {/* Step indicator */}
-        {step < 5 && (
+        {step < 6 && (
           <div className="mb-8 flex justify-center overflow-x-auto pb-2">
             <StepIndicator current={step} />
           </div>
@@ -749,14 +1058,38 @@ export function BookingPage() {
                     onClick={() => { if (validateIntake()) goNext(); }}
                     className="rounded-lg bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
                   >
-                    Next: Payment →
+                    Next: Waivers & Consent →
                   </button>
                 </div>
               </div>
             )}
 
-            {/* ────────────── STEP 4: Payment ───────────────────────────── */}
-            {step === 4 && selectedService && (
+            {/* ────────────── STEP 4: Waivers & Consent ────────────────── */}
+            {step === 4 && (
+              <WaiverStep
+                waivers={applicableWaivers}
+                signatures={waiverSignatures}
+                consented={waiverConsented}
+                fieldValues={waiverFieldValues}
+                errors={waiverErrors}
+                onSignatureChange={(wid, val) => setWaiverSignatures((p) => ({ ...p, [wid]: val }))}
+                onConsentChange={(wid, val) => setWaiverConsented((p) => ({ ...p, [wid]: val }))}
+                onFieldChange={(wid, fid, val) =>
+                  setWaiverFieldValues((p) => ({ ...p, [wid]: { ...p[wid], [fid]: val } }))
+                }
+                onBack={goBack}
+                onContinue={() => {
+                  if (applicableWaivers.length === 0) {
+                    setStep(5);
+                  } else if (validateAndSubmitWaivers()) {
+                    setStep(5);
+                  }
+                }}
+              />
+            )}
+
+            {/* ────────────── STEP 5: Payment ───────────────────────────── */}
+            {step === 5 && selectedService && (
               <div>
                 <h2 className="mb-2 text-lg font-semibold text-gray-900">Payment</h2>
 
@@ -783,12 +1116,13 @@ export function BookingPage() {
                   serviceName={selectedService.name}
                   onSuccess={handlePaymentSuccess}
                   onCancel={goBack}
+                  paymentSettings={gatewaySettings}
                 />
               </div>
             )}
 
-            {/* ────────────── STEP 5: Confirmation ─────────────────────── */}
-            {step === 5 && selectedService && selectedSlot && confirmedPayment && (
+            {/* ────────────── STEP 6: Confirmation ───────────────── */}
+            {step === 6 && selectedService && selectedSlot && confirmedPayment && (
               <ConfirmationCard
                 bookingId={confirmedBookingId}
                 service={selectedService}
