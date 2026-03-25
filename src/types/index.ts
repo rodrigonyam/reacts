@@ -369,6 +369,34 @@ export interface SignedWaiver {
 
 // ── Branding & Customization ──────────────────────────────────────────────────
 
+// ── Reviews & Testimonials ────────────────────────────────────────────────────
+
+export interface Review {
+  id: string;
+  clientName: string;
+  clientInitials: string;
+  avatarColor: string;
+  rating: number;          // 1–5
+  comment: string;
+  serviceName: string;
+  date: string;            // ISO date string
+  featured: boolean;
+  approved: boolean;
+  source: 'manual' | 'post-booking';
+}
+
+export interface ReviewsSettings {
+  enabled: boolean;
+  displayOnBookingPage: boolean;
+  showRating: boolean;
+  showDate: boolean;
+  showServiceName: boolean;
+  maxDisplayed: number;
+  displayStyle: 'carousel' | 'grid' | 'list';
+  heading: string;
+  subheading: string;
+}
+
 export interface BrandingSettings {
   businessName: string;
   tagline: string;
@@ -381,6 +409,37 @@ export interface BrandingSettings {
   bookingPageWelcomeText: string;
   customDomain: string;
   updatedAt: string;
+}
+
+// ── Integrations ─────────────────────────────────────────────────────────────
+
+export interface ZoomSettings {
+  enabled: boolean;
+  accountId: string;             // Zoom Server-to-Server OAuth Account ID
+  clientId: string;              // OAuth Client ID
+  clientSecret: string;          // OAuth Client Secret (stored locally only)
+  defaultDurationMinutes: number;
+  autoCreateMeeting: boolean;    // auto-generate meeting link for every booking
+  defaultPassword: string;       // optional default meeting password
+  connectedAt?: string;          // ISO timestamp of last successful test/connect
+}
+
+export interface TeamsSettings {
+  enabled: boolean;
+  tenantId: string;
+  clientId: string;
+  clientSecret: string;
+  autoCreateMeeting: boolean;
+  connectedAt?: string;
+}
+
+export interface VirtualMeetingInfo {
+  platform: 'zoom' | 'teams' | 'other';
+  meetingId: string;
+  meetingUrl: string;
+  meetingPassword?: string;
+  hostUrl?: string;
+  dialIn?: string;
 }
 
 // ── API response wrappers ─────────────────────────────────────────────────────

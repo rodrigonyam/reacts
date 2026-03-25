@@ -17,6 +17,8 @@ const NAV_ITEMS = [
   { to: '/payment-settings', label: 'Payment Settings', icon: '💳', end: false },
   { to: '/waivers', label: 'Waivers & Intake', icon: '📝', end: false },
   { to: '/branding', label: 'Branding', icon: '🎨', end: false },
+  { to: '/reviews', label: 'Reviews', icon: '⭐', end: false },
+  { to: '/integrations', label: 'Integrations', icon: '🔗', end: false },
 ];
 
 export function Sidebar() {

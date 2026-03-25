@@ -16,6 +16,8 @@ import { StaffManagementPage } from './pages/StaffManagementPage';
 import { PaymentGatewayPage } from './pages/PaymentGatewayPage';
 import { WaiverFormsPage } from './pages/WaiverFormsPage';
 import { BrandingPage } from './pages/BrandingPage';
+import { ReviewsPage } from './pages/ReviewsPage';
+import { IntegrationsPage } from './pages/IntegrationsPage';
 
 function App() {
   return (
@@ -49,6 +51,8 @@ function App() {
                 <Route path="/payment-settings" element={<PaymentGatewayPage />} />
                 <Route path="/waivers" element={<WaiverFormsPage />} />
                 <Route path="/branding" element={<BrandingPage />} />
+                <Route path="/reviews" element={<ReviewsPage />} />
+                <Route path="/integrations" element={<IntegrationsPage />} />
               </Routes>
             </AppLayout>
           }

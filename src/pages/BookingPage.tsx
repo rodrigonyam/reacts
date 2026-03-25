@@ -9,7 +9,7 @@
  *  4. Pay
  *  5. Confirmation
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { format, addDays, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -26,6 +26,9 @@ import {
   linkWaiversToBooking,
 } from '../services/waiverService';
 import { loadBranding, applyBrandingToDOM } from '../services/brandingService';
+import { getPublicReviews, loadReviewsSettings, addReview } from '../services/reviewsService';
+import { createVirtualMeetingForBooking } from '../services/integrationsService';
+import type { VirtualMeetingInfo } from '../types';
 import {
   COMMON_TIMEZONES,
   convertSlotRange,
@@ -35,6 +38,111 @@ import {
 } from '../services/timezoneService';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.DEV;
+
+// ── Testimonials section ───────────────────────────────────────────────────────
+function TestimonialsSection() {
+  const settings = loadReviewsSettings();
+  if (!settings.enabled || !settings.displayOnBookingPage) return null;
+  const reviews = getPublicReviews(settings.maxDisplayed);
+  if (reviews.length === 0) return null;
+
+  if (settings.displayStyle === 'carousel') {
+    return <TestimonialsCarousel reviews={reviews} settings={settings} />;
+  }
+  return (
+    <div className="mb-6">
+      <p className="mb-1 text-center text-base font-bold text-gray-900">{settings.heading}</p>
+      {settings.subheading && <p className="mb-4 text-center text-xs text-gray-500">{settings.subheading}</p>}
+      <div className={settings.displayStyle === 'grid' ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : 'space-y-3'}>
+        {reviews.map((r) => (
+          <TestimonialCard key={r.id} review={r} settings={settings} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TestimonialCard({ review, settings }: {
+  review: import('../types').Review;
+  settings: import('../types').ReviewsSettings;
+}) {
+  return (
+    <div className="rounded-xl border border-white bg-white/80 p-4 shadow-sm backdrop-blur-sm">
+      <div className="flex items-start gap-3">
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+          style={{ backgroundColor: review.avatarColor }}
+        >
+          {review.clientInitials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-semibold text-gray-900">{review.clientName}</span>
+            {settings.showDate && (
+              <span className="text-xs text-gray-400">{review.date.slice(0, 7).replace('-', '/')}</span>
+            )}
+          </div>
+          {settings.showRating && (
+            <div className="text-sm text-amber-400">
+              {'★'.repeat(review.rating)}
+              <span className="text-gray-300">{'★'.repeat(5 - review.rating)}</span>
+            </div>
+          )}
+          {settings.showServiceName && review.serviceName && (
+            <span className="mt-0.5 inline-block rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+              {review.serviceName}
+            </span>
+          )}
+          <p className="mt-1.5 text-sm leading-relaxed text-gray-600">{review.comment}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TestimonialsCarousel({ reviews, settings }: {
+  reviews: import('../types').Review[];
+  settings: import('../types').ReviewsSettings;
+}) {
+  const [idx, setIdx] = useState(0);
+  const prev = () => setIdx((i) => (i - 1 + reviews.length) % reviews.length);
+  const next = () => setIdx((i) => (i + 1) % reviews.length);
+  return (
+    <div className="mb-6">
+      <p className="mb-1 text-center text-base font-bold text-gray-900">{settings.heading}</p>
+      {settings.subheading && <p className="mb-3 text-center text-xs text-gray-500">{settings.subheading}</p>}
+      <div className="relative">
+        {reviews.length > 1 && (
+          <button type="button" onClick={prev} className="absolute -left-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-gray-200 bg-white p-1.5 text-gray-500 shadow hover:bg-gray-50">
+            ‹
+          </button>
+        )}
+        <div className="mx-6">
+          <TestimonialCard review={reviews[idx]} settings={settings} />
+        </div>
+        {reviews.length > 1 && (
+          <button type="button" onClick={next} className="absolute -right-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-gray-200 bg-white p-1.5 text-gray-500 shadow hover:bg-gray-50">
+            ›
+          </button>
+        )}
+      </div>
+      {reviews.length > 1 && (
+        <div className="mt-3 flex justify-center gap-1.5">
+          {reviews.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setIdx(i)}
+              className={`h-1.5 rounded-full transition-all ${
+                i === idx ? 'w-5 bg-sky-600' : 'w-1.5 bg-gray-300'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Step labels ───────────────────────────────────────────────────────────────
 const STEPS = ['Service', 'Date & Time', 'Your Details', 'Waivers & Consent', 'Payment', 'Confirmation'];
@@ -388,6 +496,158 @@ function WaiverStep({
   );
 }
 
+// ── Post-booking review form ──────────────────────────────────────────────────
+function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          onMouseEnter={() => setHover(n)}
+          onMouseLeave={() => setHover(0)}
+          className={`text-2xl leading-none transition-colors ${n <= (hover || value) ? 'text-amber-400' : 'text-gray-300'}`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PostBookingReviewForm({ clientName, serviceName }: { clientName: string; serviceName: string }) {
+  const settings = loadReviewsSettings();
+  const [submitted, setSubmitted] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [error, setError] = useState('');
+
+  if (!settings.enabled) return null;
+
+  if (submitted) {
+    return (
+      <div className="mt-6 w-full rounded-xl border border-green-200 bg-green-50 p-5 text-center">
+        <span className="text-3xl">🙏</span>
+        <p className="mt-2 font-semibold text-green-800">Thank you for your feedback!</p>
+        <p className="mt-1 text-sm text-green-700">Your review helps others find great care.</p>
+      </div>
+    );
+  }
+
+  function handleSubmit() {
+    if (rating === 0) { setError('Please select a star rating.'); return; }
+    if (!comment.trim()) { setError('Please write a short review.'); return; }
+    addReview({
+      clientName,
+      rating,
+      comment: comment.trim(),
+      serviceName,
+      date: new Date().toISOString().slice(0, 10),
+      featured: false,
+      approved: false,
+      source: 'post-booking',
+    });
+    setSubmitted(true);
+    toast.success('Review submitted — thank you!');
+  }
+
+  return (
+    <div className="mt-6 w-full rounded-xl border border-gray-200 bg-gray-50 p-5 text-left">
+      <p className="mb-3 text-center text-sm font-semibold text-gray-800">How was your experience? Leave a quick review 🌟</p>
+      <div className="mb-3 flex justify-center">
+        <StarPicker value={rating} onChange={(n) => { setRating(n); setError(''); }} />
+      </div>
+      <textarea
+        rows={3}
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+        placeholder="Tell us about your experience..."
+        value={comment}
+        onChange={(e) => { setComment(e.target.value); setError(''); }}
+      />
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      <button
+        type="button"
+        onClick={handleSubmit}
+        className="mt-3 w-full rounded-lg bg-sky-600 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
+      >
+        Submit Review
+      </button>
+    </div>
+  );
+}
+
+// ── Virtual meeting card ──────────────────────────────────────────────────────
+function VirtualMeetingCard({ meeting }: { meeting: VirtualMeetingInfo }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(meeting.meetingUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const platformLabel = meeting.platform === 'zoom' ? 'Zoom' : 'Microsoft Teams';
+  const platformColor = meeting.platform === 'zoom' ? 'bg-blue-600' : 'bg-indigo-700';
+  const platformIcon = meeting.platform === 'zoom' ? '📹' : '💻';
+
+  return (
+    <div className="mt-5 w-full rounded-xl border border-blue-200 bg-blue-50 p-5 text-left">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-xl">{platformIcon}</span>
+        <span className="font-semibold text-blue-900">Virtual Meeting — {platformLabel}</span>
+      </div>
+      <p className="mb-4 text-sm text-blue-700">
+        Your appointment will be held virtually. Use the link below to join at the scheduled time.
+      </p>
+
+      <div className="space-y-2.5 text-sm">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-blue-500">Meeting Link</span>
+          <div className="flex items-center gap-2">
+            <a
+              href={meeting.meetingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-2 rounded-lg ${platformColor} px-4 py-2 text-sm font-semibold text-white hover:opacity-90`}
+            >
+              {platformIcon} Join {platformLabel} Meeting
+            </a>
+            <button
+              type="button"
+              onClick={copyLink}
+              className="rounded-lg border border-blue-300 bg-white px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-50"
+            >
+              {copied ? '✓ Copied' : 'Copy Link'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-white border border-blue-200 p-3 text-xs">
+          <div>
+            <p className="text-blue-500 font-medium">Meeting ID</p>
+            <p className="font-mono font-semibold text-gray-800">{meeting.meetingId}</p>
+          </div>
+          {meeting.meetingPassword && (
+            <div>
+              <p className="text-blue-500 font-medium">Password</p>
+              <p className="font-mono font-semibold text-gray-800">{meeting.meetingPassword}</p>
+            </div>
+          )}
+          {meeting.dialIn && (
+            <div className="col-span-2">
+              <p className="text-blue-500 font-medium">Dial In</p>
+              <p className="font-mono font-semibold text-gray-800">{meeting.dialIn}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Confirmation card ─────────────────────────────────────────────────────────
 interface ConfirmationProps {
   bookingId: string;
@@ -402,6 +662,14 @@ function ConfirmationCard({ bookingId, service, slot, intake, payment, clientTim
   const slotDate = parseISO(`${slot.date}T${slot.startTime}:00`);
   const calStart = `${slot.date}T${slot.startTime}:00`.replace(/[-:]/g, '').replace('T', 'T');
   const calEnd = `${slot.date}T${slot.endTime}:00`.replace(/[-:]/g, '').replace('T', 'T');
+
+  // Generate a virtual meeting link once per booking confirmation
+  const virtualMeeting = useMemo(
+    () => createVirtualMeetingForBooking(service.name, slot.date, slot.startTime, bookingId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bookingId],
+  );
+
   const gcalLink =
     `https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(service.name)}&dates=${calStart}/${calEnd}&details=${encodeURIComponent('Booking ID: ' + bookingId)}`;
 
@@ -479,6 +747,9 @@ function ConfirmationCard({ bookingId, service, slot, intake, payment, clientTim
         </dl>
       </div>
 
+      {/* ── Virtual meeting card ────────────────────────────────── */}
+      {virtualMeeting && <VirtualMeetingCard meeting={virtualMeeting} />}
+
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
         <a
           href={gcalLink}
@@ -495,6 +766,12 @@ function ConfirmationCard({ bookingId, service, slot, intake, payment, clientTim
           Done
         </Link>
       </div>
+
+      {/* ── Leave a Review ─────────────────────────────────────── */}
+      <PostBookingReviewForm
+        clientName={`${intake.firstName} ${intake.lastName}`}
+        serviceName={service.name}
+      />
     </div>
   );
 }
@@ -703,6 +980,9 @@ export function BookingPage() {
             <p className="mt-1 text-gray-500">{branding.bookingPageWelcomeText || "Choose a service, pick a time, and you're done."}</p>
           </div>
         )}
+
+        {/* Testimonials — shown on step 1 only */}
+        {step === 1 && <TestimonialsSection />}
 
         {/* Step indicator */}
         {step < 6 && (
