@@ -524,6 +524,10 @@ export function BookingPage() {
   // Payment gateway settings — loaded once on mount
   const [gatewaySettings] = useState<PaymentGatewaySettings>(() => loadGatewaySettings());
 
+  // Branding — apply CSS vars for standalone public page (no AppLayout)
+  const branding = loadBranding();
+  useEffect(() => { applyBrandingToDOM(branding); }, []);
+
   // Step 1
   const [selectedService, setSelectedService] = useState<Service | null>(
     preselectedServiceId ? (services.find((s) => s.id === preselectedServiceId) ?? null) : null,
@@ -677,8 +681,12 @@ export function BookingPage() {
       <header className="border-b border-white/60 bg-white/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">📆</span>
-            <span className="text-lg font-bold text-gray-900">BookEase</span>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={branding.businessName} className="h-8 w-8 rounded object-contain" />
+            ) : (
+              <span className="text-2xl">📆</span>
+            )}
+            <span className="text-lg font-bold text-gray-900">{branding.businessName || 'BookEase'}</span>
           </div>
           <Link to="/" className="text-sm text-sky-600 hover:underline">
             ← Admin Dashboard
@@ -691,8 +699,8 @@ export function BookingPage() {
         {/* Hero copy */}
         {step < 6 && (
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Book Your Appointment</h1>
-            <p className="mt-1 text-gray-500">Choose a service, pick a time, and you're done.</p>
+            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{branding.bookingPageTitle || 'Book Your Appointment'}</h1>
+            <p className="mt-1 text-gray-500">{branding.bookingPageWelcomeText || "Choose a service, pick a time, and you're done."}</p>
           </div>
         )}
 
@@ -1139,7 +1147,7 @@ export function BookingPage() {
 
         {/* Footer */}
         <p className="mt-8 text-center text-xs text-gray-400">
-          Secure booking powered by BookEase · {new Date().getFullYear()}
+          Secure booking powered by {branding.businessName || 'BookEase'} · {new Date().getFullYear()}
         </p>
       </main>
     </div>

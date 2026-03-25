@@ -15,6 +15,7 @@ import { GroupSchedulingPage } from './pages/GroupSchedulingPage';
 import { StaffManagementPage } from './pages/StaffManagementPage';
 import { PaymentGatewayPage } from './pages/PaymentGatewayPage';
 import { WaiverFormsPage } from './pages/WaiverFormsPage';
+import { BrandingPage } from './pages/BrandingPage';
 
 function App() {
   return (
@@ -47,6 +48,7 @@ function App() {
                 <Route path="/staff" element={<StaffManagementPage />} />
                 <Route path="/payment-settings" element={<PaymentGatewayPage />} />
                 <Route path="/waivers" element={<WaiverFormsPage />} />
+                <Route path="/branding" element={<BrandingPage />} />
               </Routes>
             </AppLayout>
           }
