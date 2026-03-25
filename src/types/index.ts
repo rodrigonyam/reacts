@@ -367,6 +367,22 @@ export interface SignedWaiver {
   signedAt: string;
 }
 
+// ── Branding & Customization ──────────────────────────────────────────────────
+
+export interface BrandingSettings {
+  businessName: string;
+  tagline: string;
+  logoUrl: string;       // base64 data URL or external URL
+  faviconUrl: string;
+  primaryColor: string;  // hex e.g. '#0284c7'
+  accentColor: string;   // hex
+  fontFamily: string;    // CSS font-family string
+  bookingPageTitle: string;
+  bookingPageWelcomeText: string;
+  customDomain: string;
+  updatedAt: string;
+}
+
 // ── API response wrappers ─────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {

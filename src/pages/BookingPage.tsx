@@ -25,6 +25,7 @@ import {
   submitSignedWaiver,
   linkWaiversToBooking,
 } from '../services/waiverService';
+import { loadBranding, applyBrandingToDOM } from '../services/brandingService';
 import {
   COMMON_TIMEZONES,
   convertSlotRange,
