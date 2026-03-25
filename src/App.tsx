@@ -19,6 +19,7 @@ import { BrandingPage } from './pages/BrandingPage';
 import { ReviewsPage } from './pages/ReviewsPage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { WaitlistPage } from './pages/WaitlistPage';
 
 function App() {
   return (
@@ -55,6 +56,7 @@ function App() {
                 <Route path="/reviews" element={<ReviewsPage />} />
                 <Route path="/integrations" element={<IntegrationsPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/waitlist" element={<WaitlistPage />} />
               </Routes>
             </AppLayout>
           }

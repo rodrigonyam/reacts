@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { to: '/reviews', label: 'Reviews', icon: '⭐', end: false },
   { to: '/integrations', label: 'Integrations', icon: '🔗', end: false },
   { to: '/analytics', label: 'Analytics', icon: '📊', end: false },
+  { to: '/waitlist', label: 'Waitlist', icon: '⏳', end: false },
 ];
 
 export function Sidebar() {

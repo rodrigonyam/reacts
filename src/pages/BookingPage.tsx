@@ -1492,6 +1492,89 @@ export function BookingPage() {
           Secure booking powered by {branding.businessName || 'BookEase'} · {new Date().getFullYear()}
         </p>
       </main>
+
+      {/* ── Waitlist modal ──────────────────────────────────────────────── */}
+      {waitlistSlot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-white bg-white p-6 shadow-2xl">
+            {wlPosition === null ? (
+              <>
+                <h3 className="mb-1 text-base font-bold text-gray-900">Join the Waitlist</h3>
+                <p className="mb-4 text-sm text-gray-500">
+                  {waitlistSlot.startTime} on {waitlistSlot.date}
+                  {selectedService ? ` · ${selectedService.name}` : ''}
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Full Name <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={wlName}
+                      onChange={(e) => setWlName(e.target.value)}
+                      placeholder="Jane Smith"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Email <span className="text-red-500">*</span></label>
+                    <input
+                      type="email"
+                      value={wlEmail}
+                      onChange={(e) => setWlEmail(e.target.value)}
+                      placeholder="jane@example.com"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Phone (optional)</label>
+                    <input
+                      type="tel"
+                      value={wlPhone}
+                      onChange={(e) => setWlPhone(e.target.value)}
+                      placeholder="(555) 000-0000"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="mt-5 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWaitlistSlot(null)}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={wlSubmitting}
+                    onClick={handleJoinWaitlist}
+                    className="flex-1 rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+                  >
+                    {wlSubmitting ? 'Joining…' : 'Join Waitlist'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-3 text-center text-4xl">⏳</div>
+                <h3 className="mb-1 text-center text-base font-bold text-gray-900">You're on the list!</h3>
+                <p className="mb-4 text-center text-sm text-gray-500">
+                  You're <span className="font-semibold text-amber-600">#{wlPosition}</span> in the queue for{' '}
+                  {waitlistSlot.startTime} on {waitlistSlot.date}.
+                  We'll notify you by email if a spot opens up.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setWaitlistSlot(null)}
+                  className="w-full rounded-lg bg-sky-600 py-2.5 text-sm font-semibold text-white hover:bg-sky-700"
+                >
+                  Done
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
