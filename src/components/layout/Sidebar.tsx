@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { to: '/branding', label: 'Branding', icon: '🎨', end: false },
   { to: '/reviews', label: 'Reviews', icon: '⭐', end: false },
   { to: '/integrations', label: 'Integrations', icon: '🔗', end: false },
+  { to: '/analytics', label: 'Analytics', icon: '📊', end: false },
 ];
 
 export function Sidebar() {

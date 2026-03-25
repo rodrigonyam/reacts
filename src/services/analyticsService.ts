@@ -4,7 +4,6 @@
  * revenue summaries all from localStorage (consistent with app mock-data pattern).
  */
 import {
-  addDays,
   differenceInDays,
   eachDayOfInterval,
   format,
