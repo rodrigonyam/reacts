@@ -442,6 +442,72 @@ export interface VirtualMeetingInfo {
   dialIn?: string;
 }
 
+// ── Analytics & Reports ───────────────────────────────────────────────────────
+
+export interface BookingTrendPoint {
+  date: string;          // YYYY-MM-DD
+  count: number;
+  revenue: number;       // cents
+  completedCount: number;
+  cancelledCount: number;
+}
+
+export interface ServiceBreakdown {
+  serviceId: string;
+  serviceName: string;
+  count: number;
+  revenue: number;       // cents
+  color: string;
+  completionRate: number; // 0–100
+}
+
+export interface StaffPerformance {
+  staffId: string;
+  staffName: string;
+  appointmentsCompleted: number;
+  appointmentsTotal: number;
+  cancellationRate: number;  // 0–100
+  revenue: number;           // cents
+  avgSessionMinutes: number;
+  clientRetentionRate: number; // 0–100 (% clients who booked again)
+}
+
+export interface RevenueBreakdown {
+  label: string;
+  amount: number;        // cents
+  count: number;
+  color: string;
+}
+
+export interface TopClient {
+  clientId: string;
+  clientName: string;
+  totalBookings: number;
+  totalSpent: number;    // cents
+  lastVisit: string;     // YYYY-MM-DD
+  status: 'active' | 'inactive';
+}
+
+export interface KPISnapshot {
+  totalRevenue: number;         // cents
+  totalBookings: number;
+  completionRate: number;       // 0–100
+  avgBookingValue: number;      // cents
+  newClients: number;
+  returningClients: number;
+  revenueChange: number;        // % vs prior period (+/-)
+  bookingsChange: number;       // % vs prior period (+/-)
+  completionChange: number;     // percentage points
+  avgValueChange: number;       // %
+}
+
+export type DateRangePreset = '7d' | '30d' | '90d' | 'mtd' | 'ytd' | 'custom';
+
+export interface DateRange {
+  start: string;   // YYYY-MM-DD
+  end: string;     // YYYY-MM-DD
+}
+
 // ── API response wrappers ─────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {
