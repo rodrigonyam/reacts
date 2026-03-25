@@ -539,6 +539,78 @@ export interface WaitlistSettings {
   notificationMessage: string;      // message template shown to client
 }
 
+// ── Marketing Tools ───────────────────────────────────────────────────────────
+
+export type PromoType = 'percentage' | 'fixed' | 'bogo' | 'free_service';
+export type PromoStatus = 'active' | 'scheduled' | 'paused' | 'expired';
+export type DiscountType = 'percentage' | 'fixed';
+
+export interface Promotion {
+  id: string;
+  name: string;
+  description: string;
+  type: PromoType;
+  value: number;                    // percentage (0-100) or fixed cents
+  minBookingAmount?: number;        // minimum booking amount in cents to apply
+  applicableServiceIds: string[];   // empty = all services
+  code?: string;                    // optional promo code tie-in
+  status: PromoStatus;
+  startDate: string;                // YYYY-MM-DD
+  endDate: string;                  // YYYY-MM-DD
+  usageLimit?: number;
+  usageCount: number;
+  createdAt: string;
+}
+
+export interface DailyDeal {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  title: string;
+  description: string;
+  discountType: DiscountType;
+  discountValue: number;            // percentage (0-100) or fixed dollars
+  dealPrice: number;                // pre-calculated final price (dollars)
+  date: string;                     // YYYY-MM-DD — specific day or 'any' for recurring
+  active: boolean;
+  maxClaims?: number;
+  claimsCount: number;
+  createdAt: string;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;                     // uppercase alphanumeric
+  description: string;
+  discountType: DiscountType;
+  discountValue: number;            // percentage (0-100) or fixed dollars
+  minAmount?: number;               // minimum booking $ to apply
+  applicableServiceIds: string[];   // empty = all services
+  usageLimit?: number;
+  usageCount: number;
+  expiresAt?: string;               // ISO datetime
+  active: boolean;
+  onePerClient: boolean;
+  createdAt: string;
+}
+
+export interface AppliedDiscount {
+  source: 'coupon' | 'deal' | 'promotion';
+  label: string;
+  originalPrice: number;
+  discountAmount: number;
+  finalPrice: number;
+}
+
+export interface MarketingStats {
+  activeCoupons: number;
+  activeDeals: number;
+  activePromotions: number;
+  totalCouponUses: number;
+  totalDealClaims: number;
+  totalSavingsGiven: number;        // dollars
+}
+
 // ── API response wrappers ─────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {

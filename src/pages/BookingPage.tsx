@@ -28,6 +28,14 @@ import {
 import { loadBranding, applyBrandingToDOM } from '../services/brandingService';
 import { getPublicReviews, loadReviewsSettings, addReview } from '../services/reviewsService';
 import { createVirtualMeetingForBooking } from '../services/integrationsService';
+import {
+  getTodayDeals,
+  getBestDealForService,
+  validateCoupon,
+  incrementCouponUsage,
+  claimDeal,
+} from '../services/marketingService';
+import type { AppliedDiscount, DailyDeal } from '../types';
 import type { VirtualMeetingInfo } from '../types';
 import {
   addToWaitlist,
@@ -213,19 +221,26 @@ function StepIndicator({ current }: { current: number }) {
 function ServiceCard({
   service,
   selected,
+  deal,
   onSelect,
 }: {
   service: Service;
   selected: boolean;
+  deal?: DailyDeal;
   onSelect: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full rounded-xl border-2 p-5 text-left transition-all focus:outline-none focus:ring-2 focus:ring-sky-400
+      className={`relative w-full rounded-xl border-2 p-5 text-left transition-all focus:outline-none focus:ring-2 focus:ring-sky-400
         ${selected ? 'border-sky-500 bg-sky-50 shadow-md' : 'border-gray-200 bg-white hover:border-sky-300 hover:shadow-sm'}`}
     >
+      {deal && (
+        <span className="absolute right-3 top-3 rounded-full bg-rose-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow">
+          🔥 {deal.discountType === 'percentage' ? `${deal.discountValue}% off` : `$${deal.discountValue} off`} today
+        </span>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span
@@ -239,8 +254,15 @@ function ServiceCard({
             <p className="mt-0.5 text-sm text-gray-500">{service.description}</p>
           </div>
         </div>
-        <div className="flex flex-col items-end text-right flex-shrink-0">
-          <span className="text-lg font-bold text-sky-700">${service.price}</span>
+        <div className="flex flex-col items-end text-right flex-shrink-0 mt-4">
+          {deal ? (
+            <>
+              <span className="text-xs text-gray-400 line-through">${service.price}</span>
+              <span className="text-lg font-bold text-rose-600">${deal.dealPrice}</span>
+            </>
+          ) : (
+            <span className="text-lg font-bold text-sky-700">${service.price}</span>
+          )}
           <span className="text-xs text-gray-400">{service.durationMinutes} min</span>
         </div>
       </div>
@@ -839,6 +861,11 @@ export function BookingPage() {
   const [confirmedBookingId, setConfirmedBookingId] = useState('');
   const [confirmedPayment, setConfirmedPayment] = useState<PaymentInfo | null>(null);
 
+  // Marketing — coupon + deal discount (step 5)
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null);
+
   // Waitlist
   const [waitlistSlot, setWaitlistSlot] = useState<TimeSlot | null>(null);
   const [wlName, setWlName] = useState('');
@@ -1052,14 +1079,26 @@ export function BookingPage() {
               <div>
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">Choose a service</h2>
                 <div className="space-y-3">
-                  {services.map((svc) => (
-                    <ServiceCard
-                      key={svc.id}
-                      service={svc}
-                      selected={selectedService?.id === svc.id}
-                      onSelect={() => setSelectedService(svc)}
-                    />
-                  ))}
+                  {services.map((svc) => {
+                    const todayDeals = getTodayDeals();
+                    const svcDeal = todayDeals.find((d) => d.serviceId === svc.id);
+                    return (
+                      <ServiceCard
+                        key={svc.id}
+                        service={svc}
+                        selected={selectedService?.id === svc.id}
+                        deal={svcDeal}
+                        onSelect={() => {
+                          setSelectedService(svc);
+                          // Auto-apply best deal for this service
+                          const bestDeal = getBestDealForService(svc.id, svc.price);
+                          setAppliedDiscount(bestDeal);
+                          setCouponCode('');
+                          setCouponError('');
+                        }}
+                      />
+                    );
+                  })}
                 </div>
                 <div className="mt-6 flex justify-end">
                   <button
@@ -1445,8 +1484,8 @@ export function BookingPage() {
                 <h2 className="mb-2 text-lg font-semibold text-gray-900">Payment</h2>
 
                 {/* Booking summary mini-card */}
-                <div className="mb-5 rounded-xl bg-gray-50 p-4 text-sm">
-                  <div className="flex items-center justify-between">
+                <div className="mb-4 rounded-xl bg-gray-50 p-4 text-sm">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium text-gray-900">{selectedService.name}</p>
                       {selectedSlot && (
@@ -1458,14 +1497,93 @@ export function BookingPage() {
                         {intake.firstName} {intake.lastName} · {intake.email}
                       </p>
                     </div>
-                    <span className="text-xl font-bold text-sky-700">${selectedService.price}</span>
+                    <div className="text-right flex-shrink-0">
+                      {appliedDiscount ? (
+                        <>
+                          <p className="text-xs text-gray-400 line-through">${selectedService.price.toFixed(2)}</p>
+                          <p className="text-xl font-bold text-rose-600">${appliedDiscount.finalPrice.toFixed(2)}</p>
+                          <p className="text-[10px] text-emerald-600 font-medium">You save ${appliedDiscount.discountAmount.toFixed(2)}</p>
+                        </>
+                      ) : (
+                        <span className="text-xl font-bold text-sky-700">${selectedService.price.toFixed(2)}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
+                {/* ── Active deal banner ─────────────────────────────── */}
+                {appliedDiscount?.source === 'deal' && (
+                  <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm">
+                    <span className="text-lg">🔥</span>
+                    <div>
+                      <p className="font-semibold text-rose-700">{appliedDiscount.label}</p>
+                      <p className="text-xs text-rose-500">Daily deal automatically applied!</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Coupon code input ──────────────────────────────── */}
+                <div className="mb-5 rounded-xl border border-gray-200 bg-white p-4">
+                  <p className="mb-2 text-sm font-semibold text-gray-700">🎟️ Have a coupon code?</p>
+                  {appliedDiscount?.source === 'coupon' ? (
+                    <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-2.5">
+                      <div>
+                        <p className="text-sm font-semibold text-emerald-700">{appliedDiscount.label}</p>
+                        <p className="text-xs text-emerald-600">-${appliedDiscount.discountAmount.toFixed(2)} saved</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setAppliedDiscount(null); setCouponCode(''); setCouponError(''); }}
+                        className="ml-3 text-xs font-medium text-gray-400 hover:text-red-500"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                        placeholder="e.g. WELCOME10"
+                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase tracking-widest focus:border-sky-500 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          try {
+                            const discount = validateCoupon(couponCode.trim(), selectedService.price, selectedService.id);
+                            setAppliedDiscount(discount);
+                            setCouponError('');
+                            toast.success('Coupon applied!');
+                          } catch (e) {
+                            setCouponError((e as Error).message);
+                          }
+                        }}
+                        className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
+                  {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
+                </div>
+
                 <PaymentForm
-                  amount={selectedService.price}
+                  amount={appliedDiscount ? appliedDiscount.finalPrice : selectedService.price}
                   serviceName={selectedService.name}
-                  onSuccess={handlePaymentSuccess}
+                  onSuccess={(payment) => {
+                    // Increment usage counters on successful payment
+                    if (appliedDiscount?.source === 'coupon' && couponCode) {
+                      incrementCouponUsage(couponCode.trim());
+                    }
+                    if (appliedDiscount?.source === 'deal') {
+                      const todayDeals = getTodayDeals();
+                      const deal = todayDeals.find((d) => d.serviceId === selectedService.id);
+                      if (deal) claimDeal(deal.id);
+                    }
+                    handlePaymentSuccess(payment);
+                  }}
                   onCancel={goBack}
                   paymentSettings={gatewaySettings}
                 />
