@@ -30,6 +30,12 @@ import { getPublicReviews, loadReviewsSettings, addReview } from '../services/re
 import { createVirtualMeetingForBooking } from '../services/integrationsService';
 import type { VirtualMeetingInfo } from '../types';
 import {
+  addToWaitlist,
+  isAlreadyOnWaitlist,
+  getWaitlistPosition,
+  loadWaitlistSettings,
+} from '../services/waitlistService';
+import {
   COMMON_TIMEZONES,
   convertSlotRange,
   convertSlotTime,
@@ -833,6 +839,14 @@ export function BookingPage() {
   const [confirmedBookingId, setConfirmedBookingId] = useState('');
   const [confirmedPayment, setConfirmedPayment] = useState<PaymentInfo | null>(null);
 
+  // Waitlist
+  const [waitlistSlot, setWaitlistSlot] = useState<TimeSlot | null>(null);
+  const [wlName, setWlName] = useState('');
+  const [wlEmail, setWlEmail] = useState('');
+  const [wlPhone, setWlPhone] = useState('');
+  const [wlSubmitting, setWlSubmitting] = useState(false);
+  const [wlPosition, setWlPosition] = useState<number | null>(null);
+
   // Load waivers whenever the selected service changes
   useEffect(() => {
     if (selectedService) {
@@ -949,6 +963,44 @@ export function BookingPage() {
   const setField = <K extends keyof IntakeData>(key: K, value: IntakeData[K]) => {
     setIntake((prev) => ({ ...prev, [key]: value }));
     if (intakeErrors[key]) setIntakeErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  // ── Waitlist join handler ─────────────────────────────────────────────────
+  const handleJoinWaitlist = () => {
+    if (!waitlistSlot || !selectedService) return;
+    if (!wlName.trim()) { toast.error('Please enter your name.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(wlEmail)) { toast.error('Please enter a valid email.'); return; }
+
+    const wlSettings = loadWaitlistSettings();
+    if (!wlSettings.enabled) { toast.error('Waitlist is currently disabled.'); return; }
+
+    if (isAlreadyOnWaitlist(waitlistSlot.id, wlEmail)) {
+      const pos = getWaitlistPosition(waitlistSlot.id, wlEmail);
+      toast.success(`You're already on the waitlist — position #${pos}.`);
+      setWaitlistSlot(null);
+      return;
+    }
+
+    setWlSubmitting(true);
+    try {
+      const entry = addToWaitlist({
+        slotId: waitlistSlot.id,
+        serviceId: selectedService.id,
+        serviceName: selectedService.name,
+        slotDate: waitlistSlot.date,
+        slotTime: waitlistSlot.startTime,
+        clientName: wlName.trim(),
+        clientEmail: wlEmail.trim().toLowerCase(),
+        clientPhone: wlPhone.trim() || undefined,
+      });
+      setWlPosition(entry.position);
+      toast.success(`You're #${entry.position} on the waitlist! We'll notify you if a spot opens up.`);
+      setWlName(''); setWlEmail(''); setWlPhone('');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setWlSubmitting(false);
+    }
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -1121,26 +1173,36 @@ export function BookingPage() {
                         ? slot.startTime
                         : convertSlotTime(slot.date, slot.startTime, providerTimezone, clientTimezone);
                       return (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          disabled={full}
-                          onClick={() => setSelectedSlot(slot)}
-                          className={`rounded-lg border-2 px-3 py-3 text-center text-sm font-medium transition-all
-                            ${full ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300 line-through' :
-                              chosen ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm' :
-                              'border-gray-200 bg-white text-gray-700 hover:border-sky-300 hover:bg-sky-50'}`}
-                        >
-                          <div>{displayTime}</div>
-                          {!sameZone && !full && (
-                            <div className="mt-0.5 text-[9px] text-gray-400">
-                              {slot.startTime} {getTimezoneBadge(providerTimezone)}
+                        <div key={slot.id} className="flex flex-col gap-1">
+                          <button
+                            type="button"
+                            disabled={full}
+                            onClick={() => setSelectedSlot(slot)}
+                            className={`rounded-lg border-2 px-3 py-3 text-center text-sm font-medium transition-all
+                              ${full ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300 line-through' :
+                                chosen ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm' :
+                                'border-gray-200 bg-white text-gray-700 hover:border-sky-300 hover:bg-sky-50'}`}
+                          >
+                            <div>{displayTime}</div>
+                            {!sameZone && !full && (
+                              <div className="mt-0.5 text-[9px] text-gray-400">
+                                {slot.startTime} {getTimezoneBadge(providerTimezone)}
+                              </div>
+                            )}
+                            <div className="mt-0.5 text-[10px] text-gray-400">
+                              {full ? 'Full' : `${slot.capacity - slot.booked} left`}
                             </div>
+                          </button>
+                          {full && loadWaitlistSettings().enabled && (
+                            <button
+                              type="button"
+                              onClick={() => { setWaitlistSlot(slot); setWlPosition(null); }}
+                              className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-100"
+                            >
+                              ⏳ Join Waitlist
+                            </button>
                           )}
-                          <div className="mt-0.5 text-[10px] text-gray-400">
-                            {full ? 'Full' : `${slot.capacity - slot.booked} left`}
-                          </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>

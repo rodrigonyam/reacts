@@ -508,6 +508,37 @@ export interface DateRange {
   end: string;     // YYYY-MM-DD
 }
 
+// ── Waiting List ──────────────────────────────────────────────────────────────
+
+export type WaitlistStatus = 'waiting' | 'notified' | 'claimed' | 'expired';
+
+export interface WaitlistEntry {
+  id: string;
+  slotId: string;
+  serviceId: string;
+  serviceName: string;
+  slotDate: string;       // YYYY-MM-DD
+  slotTime: string;       // HH:mm
+  clientName: string;
+  clientEmail: string;
+  clientPhone?: string;
+  status: WaitlistStatus;
+  position: number;       // 1-based queue position within slot
+  joinedAt: string;       // ISO datetime
+  notifiedAt?: string;
+  claimedAt?: string;
+  expiresAt?: string;     // claim window end (notifiedAt + windowHours)
+  notes?: string;
+}
+
+export interface WaitlistSettings {
+  enabled: boolean;
+  notificationWindowHours: number;  // how long client has to claim before next is notified
+  maxPerSlot: number;               // max waitlist entries per slot
+  autoNotify: boolean;              // auto-notify next in queue when slot opens
+  notificationMessage: string;      // message template shown to client
+}
+
 // ── API response wrappers ─────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {

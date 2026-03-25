@@ -44,6 +44,7 @@ import {
   MOCK_SERVICES,
   MOCK_STAFF,
 } from '../services/mockData';
+import { onSlotOpened } from '../services/waitlistService';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.DEV;
 
@@ -249,11 +250,17 @@ export const useBookingStore = create<BookingStore>((set) => ({
   updateBookingStatus: async (id, status) => {
     try {
       if (USE_MOCK) {
-        set((state) => ({
-          bookings: state.bookings.map((b) =>
-            b.id === id ? { ...b, status, updatedAt: new Date().toISOString() } : b,
-          ),
-        }));
+        set((state) => {
+          const booking = state.bookings.find((b) => b.id === id);
+          if (status === 'cancelled' && booking?.slotId) {
+            onSlotOpened(booking.slotId);
+          }
+          return {
+            bookings: state.bookings.map((b) =>
+              b.id === id ? { ...b, status, updatedAt: new Date().toISOString() } : b,
+            ),
+          };
+        });
         return;
       }
       const updated = await bookingService.updateStatus(id, status);
@@ -326,6 +333,7 @@ export const useBookingStore = create<BookingStore>((set) => ({
     try {
       const newSlot = useBookingStore.getState().slots.find((s) => s.id === newSlotId);
       if (USE_MOCK) {
+        const oldBooking = useBookingStore.getState().bookings.find((b) => b.id === bookingId);
         set((state) => ({
           bookings: state.bookings.map((b) =>
             b.id === bookingId
@@ -334,11 +342,12 @@ export const useBookingStore = create<BookingStore>((set) => ({
           ),
           slots: state.slots.map((s) => {
             if (s.id === newSlotId) return { ...s, booked: s.booked + 1, available: s.booked + 1 < s.capacity };
-            const oldBooking = state.bookings.find((bk) => bk.id === bookingId);
-            if (oldBooking && s.id === oldBooking.slotId) return { ...s, booked: Math.max(0, s.booked - 1), available: true };
+            const oldBookingInner = state.bookings.find((bk) => bk.id === bookingId);
+            if (oldBookingInner && s.id === oldBookingInner.slotId) return { ...s, booked: Math.max(0, s.booked - 1), available: true };
             return s;
           }),
         }));
+        if (oldBooking?.slotId) onSlotOpened(oldBooking.slotId);
         return;
       }
       await bookingService.updateStatus(bookingId, 'confirmed'); // placeholder — swap for real reschedule endpoint
