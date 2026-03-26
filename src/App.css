@@ -6,8 +6,8 @@
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 /* Subtle gradient on the sidebar creates depth without heaviness */
 aside.flex.w-64 {
-  background: linear-gradient(180deg, #ffffff 0%, #f9fffe 100%);
-  box-shadow: 1px 0 0 0 #e5e7eb;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 1px 0 0 0 #dde3eb;
 }
 
 /* ── Stat Cards — smooth hover lift ────────────────────────────────────── */
@@ -15,7 +15,7 @@ aside.flex.w-64 {
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .rounded-xl.border.bg-white.p-5.shadow-sm:hover {
-  box-shadow: 0 6px 16px -4px rgba(13, 148, 136, 0.12),
+  box-shadow: 0 6px 16px -4px rgba(52, 120, 176, 0.11),
               0 2px 6px -2px rgba(0, 0, 0, 0.04);
   transform: translateY(-1px);
 }
@@ -25,9 +25,9 @@ th {
   letter-spacing: 0.04em;
 }
 
-/* Row highlight uses a very light teal tint instead of gray */
+/* Row highlight uses a soft blue tint instead of harsh gray */
 tbody tr:hover td {
-  background-color: #f0fdfa;
+  background-color: #f0f7fd;
 }
 
 /* ── Modal backdrop ─────────────────────────────────────────────────────── */
@@ -53,13 +53,13 @@ tbody tr:hover td {
 }
 
 .booking-progress-step--active {
-  background: #0d9488;
+  background: #3478b0;
   color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 4px rgba(52, 120, 176, 0.14);
 }
 
 .booking-progress-step--complete {
-  background: #14b8a6;
+  background: #59a2d9;
   color: #ffffff;
 }
 
@@ -72,9 +72,9 @@ tbody tr:hover td {
 /* ── Service Cards (/book step 1) ───────────────────────────────────────── */
 /* Gentle pulse effect on the selected card to give clear patient feedback */
 @keyframes selection-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.35); }
-  70%  { box-shadow: 0 0 0 6px rgba(13, 148, 136, 0);  }
-  100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);    }
+  0%   { box-shadow: 0 0 0 0 rgba(52, 120, 176, 0.30); }
+  70%  { box-shadow: 0 0 0 6px rgba(52, 120, 176, 0);  }
+  100% { box-shadow: 0 0 0 0 rgba(52, 120, 176, 0);    }
 }
 
 .service-card--selected {
@@ -88,16 +88,16 @@ tbody tr:hover td {
 }
 
 .slot-btn:hover:not(:disabled) {
-  border-color: #5eead4;
-  background-color: #f0fdfa;
-  color: #0d9488;
+  border-color: #85bde8;
+  background-color: #f0f7fd;
+  color: #3478b0;
 }
 
 .slot-btn--selected {
-  background-color: #0d9488;
-  border-color: #0d9488;
+  background-color: #3478b0;
+  border-color: #3478b0;
   color: #ffffff;
-  box-shadow: 0 1px 4px rgba(13, 148, 136, 0.3);
+  box-shadow: 0 1px 4px rgba(52, 120, 176, 0.28);
 }
 
 /* ── Trust Badge (reviews / verified) ──────────────────────────────────── */
@@ -107,11 +107,11 @@ tbody tr:hover td {
   gap: 0.25rem;
   padding: 0.25rem 0.625rem;
   border-radius: 9999px;
-  background: #f0fdfa;
-  color: #0d9488;
+  background: #f0f7fd;
+  color: #3478b0;
   font-size: 0.75rem;
   font-weight: 600;
-  border: 1px solid #ccfbf1;
+  border: 1px solid #d9ecf8;
 }
 
 /* ── Status Badges (semantic colours) ──────────────────────────────────── */
@@ -134,9 +134,9 @@ tbody tr:hover td {
 }
 
 .status-completed {
-  background-color: #f0fdfa;
-  color: #0d9488;
-  border-color: #ccfbf1;
+  background-color: #ecf6f0;
+  color: #2d7a55;
+  border-color: #c3e0d2;
 }
 
 /* ── react-hot-toast overrides ──────────────────────────────────────────── */
@@ -169,9 +169,9 @@ tbody tr:hover td {
 }
 
 /* ── Spinner override ───────────────────────────────────────────────────── */
-/* Ensure the spinner uses the brand teal */
+/* Ensure the spinner uses the brand blue */
 .animate-spin {
-  border-top-color: #0d9488 !important;
+  border-top-color: #3478b0 !important;
 }
   }
 
