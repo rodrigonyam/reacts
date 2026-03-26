@@ -1,176 +1,178 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+/* ══════════════════════════════════════════════════════════════════════════
+   HEALTH BOOKING APP — COMPONENT STYLES
+   Supplements Tailwind utilities with health-specific patterns.
+   ══════════════════════════════════════════════════════════════════════════ */
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+/* Subtle gradient on the sidebar creates depth without heaviness */
+aside.flex.w-64 {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fffe 100%);
+  box-shadow: 1px 0 0 0 #e5e7eb;
 }
 
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+/* ── Stat Cards — smooth hover lift ────────────────────────────────────── */
+.rounded-xl.border.bg-white.p-5.shadow-sm {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.rounded-xl.border.bg-white.p-5.shadow-sm:hover {
+  box-shadow: 0 6px 16px -4px rgba(13, 148, 136, 0.12),
+              0 2px 6px -2px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
 }
 
-#center {
+/* ── Data Tables ────────────────────────────────────────────────────────── */
+th {
+  letter-spacing: 0.04em;
+}
+
+/* Row highlight uses a very light teal tint instead of gray */
+tbody tr:hover td {
+  background-color: #f0fdfa;
+}
+
+/* ── Modal backdrop ─────────────────────────────────────────────────────── */
+/* Give the modal overlay an extra blur for a calming depth effect */
+[role='dialog'] + div,
+.fixed.inset-0.bg-black\/50 {
+  backdrop-filter: blur(3px);
+}
+
+/* ── Booking Step Progress Indicator ───────────────────────────────────── */
+/* Used on the public-facing /book page to guide patients step-by-step   */
+.booking-progress-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.booking-progress-step--active {
+  background: #0d9488;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.15);
+}
+
+.booking-progress-step--complete {
+  background: #14b8a6;
+  color: #ffffff;
+}
+
+.booking-progress-step--inactive {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border: 1.5px solid #e5e7eb;
+}
+
+/* ── Service Cards (/book step 1) ───────────────────────────────────────── */
+/* Gentle pulse effect on the selected card to give clear patient feedback */
+@keyframes selection-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.35); }
+  70%  { box-shadow: 0 0 0 6px rgba(13, 148, 136, 0);  }
+  100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);    }
+}
+
+.service-card--selected {
+  animation: selection-pulse 0.5s ease;
+}
+
+/* ── Time Slot Grid ─────────────────────────────────────────────────────── */
+/* Available slots get a teal tint on hover for clear affordance */
+.slot-btn {
+  transition: all 0.15s ease;
+}
+
+.slot-btn:hover:not(:disabled) {
+  border-color: #5eead4;
+  background-color: #f0fdfa;
+  color: #0d9488;
+}
+
+.slot-btn--selected {
+  background-color: #0d9488;
+  border-color: #0d9488;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(13, 148, 136, 0.3);
+}
+
+/* ── Trust Badge (reviews / verified) ──────────────────────────────────── */
+.trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  background: #f0fdfa;
+  color: #0d9488;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid #ccfbf1;
+}
+
+/* ── Status Badges (semantic colours) ──────────────────────────────────── */
+.status-confirmed {
+  background-color: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.status-pending {
+  background-color: #fef9c3;
+  color: #a16207;
+  border-color: #fde68a;
+}
+
+.status-cancelled {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.status-completed {
+  background-color: #f0fdfa;
+  color: #0d9488;
+  border-color: #ccfbf1;
+}
+
+/* ── react-hot-toast overrides ──────────────────────────────────────────── */
+/* Match Inter font and health brand */
+
+/* Success toast: teal */
+.react-hot-toast > [role='status'] {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.875rem !important;
+  border-radius: 0.625rem !important;
+}
+
+/* ── Empty state ────────────────────────────────────────────────────────── */
+.empty-state {
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  color: #9ca3af;
+  text-align: center;
 }
 
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
+.empty-state svg,
+.empty-state .empty-icon {
+  width: 3rem;
+  height: 3rem;
+  opacity: 0.4;
 }
 
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
+/* ── Spinner override ───────────────────────────────────────────────────── */
+/* Ensure the spinner uses the brand teal */
+.animate-spin {
+  border-top-color: #0d9488 !important;
 }
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
-  width: 100%;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
   }
 
   &::before {
