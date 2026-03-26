@@ -1,102 +1,89 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   HEALTH APPOINTMENT BOOKING — DESIGN SYSTEM
+   ─────────────────────────────────────────────────────────────────────────
+   Typeface  : Inter — legible, warm, universally trusted in healthcare UIs
+   Primary   : Teal (#0d9488) — calming, clinical trust, wellness
+   Neutrals  : Warm slate grays — reduces visual fatigue & harsh contrast
+   Goal      : Reduce patient anxiety · Streamline booking · Mobile-first
+   ══════════════════════════════════════════════════════════════════════════ */
+
 @import "tailwindcss";
 @import "react-big-calendar/lib/css/react-big-calendar.css";
 
-/* ── React Big Calendar overrides ── */
-.rbc-calendar {
-  font-family: ui-sans-serif, system-ui, sans-serif;
-}
-.rbc-toolbar button {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  background: #fff;
-  border-radius: 0.375rem;
-  padding: 0.25rem 0.75rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.rbc-toolbar button:hover {
-  background: #f9fafb;
-}
-.rbc-toolbar button.rbc-active {
-  background: #0284c7;
-  color: #fff;
-  border-color: #0284c7;
-}
-.rbc-event {
-  background-color: #0284c7 !important;
-  border-color: #0369a1 !important;
-  color: #fff !important;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-.rbc-today {
-  background-color: #f0f9ff;
-}
-.rbc-off-range-bg {
-  background-color: #f9fafb;
-}
-.rbc-selected-cell {
-  background-color: #e0f2fe;
-}
-.rbc-slot-selection {
-  background-color: rgba(14, 165, 233, 0.3);
+/* ── Tailwind v4 Design Tokens ─────────────────────────────────────────────
+   Override "sky" → calming health-teal so every bg-sky-*, text-sky-*,
+   border-sky-*, ring-sky-* utility across the entire app auto-adopts the
+   health colour without touching a single component file.
+   ─────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Teal palette — calm, trustworthy, universally associated with health */
+  --color-sky-50:  #f0fdfa;
+  --color-sky-100: #ccfbf1;
+  --color-sky-200: #99f6e4;
+  --color-sky-300: #5eead4;
+  --color-sky-400: #2dd4bf;
+  --color-sky-500: #14b8a6;
+  --color-sky-600: #0d9488;
+  --color-sky-700: #0f766e;
+  --color-sky-800: #115e59;
+  --color-sky-900: #134e4a;
+  --color-sky-950: #042f2e;
+
+  /* Inter for all text — clear hierarchy, excellent legibility */
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* ── CSS Custom Properties ─────────────────────────────────────────────── */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Health accent */
+  --accent:        #0d9488;
+  --accent-bg:     rgba(13, 148, 136, 0.08);
+  --accent-border: rgba(13, 148, 136, 0.28);
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Elevation shadows — softer than defaults to reduce visual tension */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow:    0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-focus: 0 0 0 3px rgba(13, 148, 136, 0.18);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  /* Typography */
+  --sans:    'Inter', ui-sans-serif, system-ui, sans-serif;
+  --heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --mono:    ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  /* Legacy variables kept for backward-compat with inline references */
+  --text:       #4b5563;
+  --text-h:     #111827;
+  --bg:         #f5fdfb;
+  --border:     #e5e7eb;
+  --code-bg:    #f3f4f6;
+  --social-bg:  rgba(240, 253, 250, 0.5);
+
+  font: 16px / 1.6 var(--sans);
+  letter-spacing: 0.01em;
+  color: #374151;
+  background: #f5fdfb;
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* ── Base Reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
+body { margin: 0; }
+
+/* ── Root container ─────────────────────────────────────────────────────── */
 #root {
   width: 1126px;
   max-width: 100%;
